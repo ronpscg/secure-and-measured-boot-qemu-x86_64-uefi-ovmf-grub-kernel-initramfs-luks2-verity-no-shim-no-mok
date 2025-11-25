@@ -1,4 +1,6 @@
+Everything in this repo was written using vi. Nothing using AI.
 # secure-and-measured-boot-qemu-x86_64-uefi-tpm2-ovmf-grub-kernel-initramfs-dmcrypt-dmverity-rootfs-no-shim-no-mok
+
 The project name explains what it does. In this case - more is more.
 (hmm. By the time I wrote this someone changed the man pages of `less` from *"less is more"* to *"less - opposite of more"*. How could they? [imagine tons of angry emojies])
 
@@ -19,6 +21,15 @@ It was all built and tested on *Ubuntu Plucky (25.04)*, and can be useful for ed
 
 I might give some design considerations explanations later, but not at this point.
 
+## Code organization
+None. Eh!
+I will organize it later maybe, I just want to push it to share with the almighty FC and CM  (as obvious as it may sound that it is - no, it isn't Football Club and Configuration Management respectfully, eh!)
+
+What has been run and tested repeatedly
+- Tons of things from command line, that I will try to put in some scripts later
+- dracut from Docker (the other initramfs's are not used, *copybin.sh* was made for them, but dracut just handles systemd in initramfs **so much better** than the Canonical tools, sorry
+- All the scripts that start with a number.
+
 ## Steps overview:
 - Build *QEMU* (I used the distro one because it's simple. In some of *The PSCG* training courses we build QEMU from source because we need all kind of things, or because the courses address QEMU/KVM themselves)
 - Build *EDK2* and *OVMF* with secure boot and TPM support (I think there is a pacakge in Ubuntu to have the OVMF secure boot firmware but I did not check it)
@@ -30,7 +41,7 @@ I might give some design considerations explanations later, but not at this poin
 - Enroll certificates in UEFI storage, etc. (you can do it from the Firmware setup menu, and you can do it from the database)
 
 ## Why not use SHIM
-Basically - 
+Basically, most GRUB based flow use SHIM, as it makes things easily installable on "every PC" (Yes, that includes also your laptops, whether they are x86 or arm based). However, the common aggreement is that if Microsoft is compromised, a device that uses SHIM will be compromised as well (although SHIM does not necessary have to be signed by Microsoft, but trust me there is no point in arguing). Not using SHIM, allows a developer to completely decide the chain of trust, with the exception of the hardware manufacturer itself. Therefore, it is an important and useful construct.
 
 ## Why not use UKI (Unified Kernel Image)
 It's easier to debug initramfs until you are sure what exactly you want to put on it.
