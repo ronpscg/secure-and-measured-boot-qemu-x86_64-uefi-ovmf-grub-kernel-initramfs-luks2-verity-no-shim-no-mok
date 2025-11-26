@@ -15,7 +15,7 @@ build() (
 )
 
 copy_artifacts() {
-	:
+	cp $KERNEL_BUILDER_DIR/arch/x86/boot/bzImage $REQUIRED_PROJECTS_ARTIFACTS_DIR
 }
 
 

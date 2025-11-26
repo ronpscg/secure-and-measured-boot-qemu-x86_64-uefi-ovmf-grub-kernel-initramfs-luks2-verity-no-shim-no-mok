@@ -7,14 +7,17 @@
 #       are required really for the demonstration of this project
 setup() {
 	./build-kernel.sh setup
+	./build-edk2-ovmf.sh setup
 }
 
 build() {
 	./build-kernel.sh build
+	./build-edk2-ovmf.sh build
 }
 
 copy_artifacts() {
-	:
+	./build-kernel.sh copy_artifacts
+	./build-edk2-ovmf.sh copy_artifacts
 }
 
 
