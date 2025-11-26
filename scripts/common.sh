@@ -7,9 +7,7 @@
 
 set -a
 
-LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
-BUILD_TOP=$(readlink -f $LOCAL_DIR/../../)
-cd $LOCAL_DIR
+BUILD_TOP=$(readlink -f $(dirname ${BASH_SOURCE[0]})/..)
 # Common project dir
 : ${REQUIRED_PROJECTS_DIR=$HOME/pscg/secureboot-qemu-x86_64-efi-grub/components}
 DL_DIR=$REQUIRED_PROJECTS_DIR
