@@ -8,16 +8,20 @@
 setup() {
 	./build-kernel.sh setup
 	./build-edk2-ovmf.sh setup
+	./build-grub.sh setup
 }
 
 build() {
 	./build-kernel.sh build
 	./build-edk2-ovmf.sh build
+	./build-grub.sh build # alternatively, you can split the steps. If you know for sure you just want to update a config file and grub-core is built
+	                      # Then, you could just run    ./build-grub.sh build_standalone_image  
 }
 
 copy_artifacts() {
 	./build-kernel.sh copy_artifacts
 	./build-edk2-ovmf.sh copy_artifacts
+	./build-grub.sh copy_artifacts
 }
 
 
@@ -25,7 +29,16 @@ case $1 in
 	setup|build|copy_artifacts)
 		$1
 		;;
+	all)
+		echo "[+] Setting up the external projects..."
+		setup
+		echo "[+] Building the external projects..."
+		build
+		echo "[+] Copying artifacts..."
+		copy_artifacts
+		;;
+
 	*) 
-		echo "usage: $0 <setup|build>"
+		echo "usage: $0 <setup|build|copy_artifacts|all>"
 		;;
 esac

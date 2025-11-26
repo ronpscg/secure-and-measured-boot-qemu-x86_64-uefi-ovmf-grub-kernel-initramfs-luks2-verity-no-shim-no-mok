@@ -29,6 +29,7 @@ KERNEL_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/linux-$KV
 KERNEL_CONFIG=$BUILD_TOP/kernel-configs/config-x86_64_tpm-dmcrypt-dmverity
 
 GRUB_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/grub
+GRUB_CONFIG=$BUILD_TOP/grub-configs/config-grub-wip.cfg
 
 EDK2_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/edk2
 
