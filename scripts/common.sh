@@ -33,8 +33,9 @@ EDK2_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/edk2
 
 INITRAMFS_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/dockers/initramfs-builder
 
-
-
+#------ Rootfs builder (I would use PscgBuildOS for that, and presenting a specific debootstrap alternative)
+ROOTFS_DEBOOTSTRAP_DIR=$REQUIRED_PROJECTS_ARTIFACTS_DIR/rootfs
+ROOTFS_FS_FOLDER=$ROOTFS_DEBOOTSTRAP_DIR
 
 #------- Artifacts folder to do the actual running from -------------
 ESP_FS_FOLDER=$ARTIFACTS_DIR/ESP.fs.folder
@@ -45,3 +46,4 @@ if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" ] ; then
 else
 	BOOT_FS_FOLDER=$ARTIFACTS_DIR/boot.fs.folder
 fi
+

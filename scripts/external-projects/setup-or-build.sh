@@ -10,6 +10,7 @@ setup() {
 	./build-edk2-ovmf.sh setup
 	./build-grub.sh setup
 	./build-initramfs.sh setup
+	./build-rootfs.sh	# Already copies the artifacts - this does  setup + build + copy_artifacts together
 }
 
 build() {
@@ -17,7 +18,7 @@ build() {
 	./build-edk2-ovmf.sh build
 	./build-grub.sh build # alternatively, you can split the steps. If you know for sure you just want to update a config file and grub-core is built
 	                      # Then, you could just run    ./build-grub.sh build_standalone_image  
-	./build-initramfs build # basically already done by setup for now. maybe I'll add specific builds
+	# ./build-initramfs build # basically already done by setup for now. maybe I'll add specific builds
 }
 
 copy_artifacts() {
