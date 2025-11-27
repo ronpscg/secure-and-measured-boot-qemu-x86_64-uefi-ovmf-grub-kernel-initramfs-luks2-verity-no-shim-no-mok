@@ -8,11 +8,35 @@ echo "[+] Populating ESP materials folder"
 mkdir -p $ESP_FS_FOLDER/EFI/Boot
 
 echo "[+] Updating standalone GRUB with latest configuration"
+export SECURE_BOOT=true # TODO put elsewhere
 (  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_standalone_image && ./build-grub.sh copy_artifacts )
+cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/grubx64.efi $ARTIFACTS_DIR/grubx64.efi
+if [ "$SECURE_BOOT" = "true" ] ; then 
+	echo "[+] Adding signed GRUB to the ESP materials"
+	# sbsign is from the sbsigntool . Install it if needed
+	sbsign --key $ARTIFACTS_DIR/keys/db.key --cert $ARTIFACTS_DIR/keys/db.crt \
+		--output $ARTIFACTS_DIR/grubx64.efi.signed $ARTIFACTS_DIR/grubx64.efi
+	cp $ARTIFACTS_DIR/grubx64.efi.signed $ESP_FS_FOLDER/EFI/Boot/bootx64.efi # This is the unsigned version
+
+	echo "[+] Signing everything GRUB loads directly with its PGP keys, and the kernel also with the EFI keys"
+	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage
+
+	# Since GRUB uses the firmware to verify, this is required
+	sbsign --key $ARTIFACTS_DIR/keys/db.key --cert $ARTIFACTS_DIR/keys/db.crt \
+		--output $BOOT_FS_FOLDER/bzImage.signed $BOOT_FS_FOLDER/bzImage
+
+	# This is needed in case you would still like to verify the signature, and to avoid the "No one wants verification" error when there is no shim
+	# (I don't know if it can be pypassed without a GRUB patch)
+	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage.signed
 
 
-echo "[+] Adding unsigned GRUB to the ESP materials"
-cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/grubx64.efi $ESP_FS_FOLDER/EFI/Boot/bootx64.efi
+	### initrd - fine to verify with GPG only (won't load without signing if secure boot and check_signature are on
+	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/initrd.img
+
+else
+	echo "[+] Adding unsigned GRUB to the ESP materials"
+	cp $ARTIFACTS_DIR/grubx64.efi $ESP_FS_FOLDER/EFI/Boot/bootx64.efi # This is the unsigned version
+fi
 
 PUT_BOOT_MATERIALS_IN_ESP_FS=true
 if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" ] ; then
@@ -31,7 +55,12 @@ mkdir -p $BOOT_FS_FOLDER
 cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/bzImage $BOOT_FS_FOLDER
 cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/initrd.img $BOOT_FS_FOLDER
 
-cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/{OVMF_CODE,OVMF_VARS}.fd $ARTIFACTS_DIR
+cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/OVMF_CODE.fd $ARTIFACTS_DIR
+
+if [ ! -e $REQUIRED_PROJECTS_ARTIFACTS_DIR/OVMF_VARS.fd  ] ; then
+	# Don't copy over if it exits - or you will have to setup the firmware again
+	cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/OVMF_VARS.fd $ARTIFACTS_DIR
+fi
 #cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/
 
 echo OK

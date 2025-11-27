@@ -23,8 +23,10 @@ build_grub_core() (
 build_standalone_image() (
 	cd $GRUB_BUILDER_DIR
 	./grub-mkstandalone -O x86_64-efi -o grubx64.efi --directory=./grub-core  \
-		--modules="part_gpt part_msdos ext2 linux normal boot configfile search ls cat echo test" \
-			--fonts="" --locales="" --themes=""  \
+		--modules="part_gpt part_msdos ext2 linux normal boot configfile search ls cat echo test gcry_dsa gcry_rsa gcry_sha256 pubkey pgp " \
+		--fonts="" --locales="" --themes=""  \
+		--disable-shim-lock \
+		--pubkey $GRUB_PGP_PUBLIC_KEY \
 		"boot/grub/grub.cfg=$GRUB_CONFIG"
 )
 
