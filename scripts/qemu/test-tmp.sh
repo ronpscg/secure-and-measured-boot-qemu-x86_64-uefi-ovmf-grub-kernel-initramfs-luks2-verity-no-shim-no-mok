@@ -1,6 +1,7 @@
 #!/bin/bash
-
-. ../common.sh || { echo "Please run this script from the correct place" ; exit 1 ; }
+LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+cd $LOCAL_DIR
 
 DIR=$ARTIFACTS_DIR
 export OVMF_CODE=$DIR/OVMF_CODE.fd
