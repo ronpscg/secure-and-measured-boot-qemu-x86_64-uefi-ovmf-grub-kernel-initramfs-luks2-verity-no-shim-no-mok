@@ -46,11 +46,10 @@ sign-efi-sig-list -k KEK.key -c KEK.crt db db.esl db.auth
 cd ..
 
 
-echo "[+] Copying keys onto the ESP partition at $ESP_FS_FOLDER/keys/"
-echo "You may definitely want to put them somewhere else and perhaps I will do that at another time. one could also delete the keys after enrolling..."
-mkdir -p $ESP_FS_FOLDER/keys
+echo "[+] Copying keys to $BOOT_UEFI_KEYS_FOLDER"
+mkdir -p $BOOT_UEFI_KEYS_FOLDER
 # Copy keys to fs for enrollment
-cp keys/*.auth $ESP_FS_FOLDER/keys
+cp keys/*.auth $BOOT_UEFI_KEYS_FOLDER
 # EDK2 may complain on EDR's and not accept auth - it will do the ESL by itself, if y ou provide the .cer files from the previous step. Let it have them:
-cp keys/*.cer $ESP_FS_FOLDER/keys
+cp keys/*.cer $BOOT_UEFI_KEYS_FOLDER
 

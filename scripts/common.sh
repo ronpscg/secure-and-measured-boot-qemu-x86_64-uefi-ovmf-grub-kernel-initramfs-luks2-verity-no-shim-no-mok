@@ -7,6 +7,9 @@
 
 set -a
 
+#====================================================
+#-------- Common Definitions: top directories -------
+#====================================================
 BUILD_TOP=$(readlink -f $(dirname ${BASH_SOURCE[0]})/..)
 # Common project dir
 : ${REQUIRED_PROJECTS_DIR=$HOME/pscg/secureboot-qemu-x86_64-efi-grub/components}
@@ -17,6 +20,38 @@ DL_DIR=$REQUIRED_PROJECTS_DIR
 
 mkdir -p $REQUIRED_PROJECTS_DIR $REQUIRED_PROJECTS_ARTIFACTS_DIR $ARTIFACTS_DIR || { echo "Can't (re)create base directories" ; exit 1 ; }
 
+
+#----------------------------------------------------
+# ESP and boot materials definitions
+# It is common in the sense that this is where kernel
+# initramfs [device trees, cmdline if needed] will be
+# accessible to the boot EFI program (e.g. GRUB) from.
+#----------------------------------------------------
+
+# Artifacts folder to do the actual "running" from
+ESP_FS_FOLDER=$ARTIFACTS_DIR/ESP.fs.folder
+
+: ${PUT_BOOT_MATERIALS_IN_ESP_FS=true}  # Note that this will affect your grub.cfg, so careful with that. 
+if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" ] ; then
+	BOOT_FS_FOLDER=$ESP_FS_FOLDER/boot
+else
+	BOOT_FS_FOLDER=$ARTIFACTS_DIR/boot.fs.folder
+fi
+
+# Location of keys certificates (PK, KEK, DB, ...) to provision to Firmware Setup menu. 
+# It's easiest to just put them on the ESP partition, but you may want to put them e.g. on an another device and have it accessible only during provisioning.
+# In fact if you use OVMF firmware setup menu, it's even easier to just put them directly under $ESP_FS_FOLDER as it will save you the "effort" of decending to the folder for finding the keys
+# This has nothing to do with the boot loaders, only with the "Firmware Setup" menu (or its equivalents!)
+: ${BOOT_UEFI_KEYS_FOLDER=$ESP_FS_FOLDER/keys}
+
+
+#====================================================
+# Per external project ("component") building definitions
+#====================================================
+
+#----------------------------------------------------
+# Kernel definitions
+#----------------------------------------------------
 # Doing tarball now, can do git instead
 # all tarballs will just be downloaded directly into $REQUIRED_PROJECTS_DIR. Maybe it will be changed.
 # PscgBuildOS and some of my other work organizes things more nicely and ALWAYS separates the source from the build directory. Since here everything was hacked brutally quickly,
@@ -26,27 +61,34 @@ KV=6.18-rc7
 KERNEL_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/linux-$KV
 KERNEL_CONFIG=$BUILD_TOP/kernel-configs/config-x86_64_tpm-dmcrypt-dmverity
 
+#----------------------------------------------------
+# Grub definitions
+#----------------------------------------------------
 GRUB_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/grub
 GRUB_CONFIG=$BUILD_TOP/grub-configs/config-grub-wip.cfg
+# The PGP lines are required strictly for GRUB without SHIM 
+# NB: (if UKI is not used - which for now it isn't for several reasons - one is ease of development, others are avoiding systemd-boot and chainloading etc.)
 GRUB_PGP_PUBLIC_KEY=$ARTIFACTS_DIR/grub-pubkey.gpg
 : ${GRUB_PGP_EMAIL=grubexample@thepscg.com}
 : ${GRUB_GPG_KEY_ID=8A79B38F2589CE82C6BE80CB2C3D2B57F2161903}
 
+
+#----------------------------------------------------
+# OVMF (EDK2) definitions
+#----------------------------------------------------
 EDK2_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/edk2
+
+#----------------------------------------------------
+# Initramfs (ramdisk) definitions - you mostly need it to work with encryption and verification "more easily".
+#----------------------------------------------------
 
 INITRAMFS_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/dockers/initramfs-builder
 
-#------ Rootfs builder (I would use PscgBuildOS for that, and presenting a specific debootstrap alternative)
+
+#----------------------------------------------------
+# Rootfs builder (I would use PscgBuildOS for that, and presenting a specific debootstrap alternative)
+#----------------------------------------------------
 ROOTFS_DEBOOTSTRAP_DIR=$REQUIRED_PROJECTS_ARTIFACTS_DIR/rootfs
 ROOTFS_FS_FOLDER=$ROOTFS_DEBOOTSTRAP_DIR
 
-#------- Artifacts folder to do the actual running from -------------
-ESP_FS_FOLDER=$ARTIFACTS_DIR/ESP.fs.folder
-
-: ${PUT_BOOT_MATERIALS_IN_ESP_FS=true}  # Note that this will affect your grub.cfg, so careful with that. 
-if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" ] ; then
-	BOOT_FS_FOLDER=$ESP_FS_FOLDER/boot
-else
-	BOOT_FS_FOLDER=$ARTIFACTS_DIR/boot.fs.folder
-fi
 
