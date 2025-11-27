@@ -21,6 +21,11 @@ It was all built and tested on *Ubuntu Plucky (25.04)*, and can be useful for ed
 
 I might give some design considerations explanations later, but not at this point.
 
+## JUST FOLLOW THESE STEPS TO BUILD AND RUN - I WILL UPDATE THE DOCUMENTATION LATER AS I DON'T REMEMBER WHAT I WROTE IN THE FIRST VERSION :-) 
+@see [STEPS.md](STEPS.md)
+
+With these steps it's actually super easy now to create a docker image and I will do it, but I don't have time to automate some things, and need to work on things I am actually getting paid for (which this one is actually pretty helpful for, but the real deal is in a million of PscgBuildOS sub projects I cannot always expose unfortunately)
+
 ## Code organization
 None. Eh!
 I will organize it later maybe, I just want to push it to share with the almighty FC and CM  (as obvious as it may sound that it is - no, it isn't Football Club and Configuration Management respectfully, eh!)
