@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# Essence: 
+# While it is tempting to assume that having an image file that is the input to both cryptsetup and veritysetup would result in the same block level results for
+# both the (runtime) decrypted device as the source image, it is not the case in practice.
+#
+# This script entails the following flow:
+# 1. Setting up a LUKS2 container and encrypting the source image file "into it"
+# 2. Openning the encrypted file and Creating the dmverity materials on the device mapper (decrypted, on a system, but this could be the host you create your images onand it will be identical then).
+#  
+# The output is then:
+# 1. A LUKS2 ecrypted partitions file image
+# 2. DM_VERITY hash partition
+# 3. Root hash (to be used, e.g. as a kernel command line parameter)
+#
+# The target device itself will then: 
+# 1. Decrypt the image 
+# 2. Use the resulted /dev/mapper/... link (/dev/dm-... device) as the source block device to open a verity device on (from)
+# 3. Use the resulted /dev/mapper/... link (/dev/dm-... device) as the read only, verity verified rootfs
+
+LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+SCRIPT_LUKS_PREPARE=${LOCAL_DIR}/6-luks-prepare.sh
+SCRIPT_DMVERITY_PREPARE=${LOCAL_DIR}/6-dmverity-prepare.sh
+
+: ${ROOTFS_ENC_IMG="./rootfs.enc.img"}
+: ${LUKS_MAPPER_NAME="dmcryptdevice-luks"}
+: ${ROOTFS_DECRYPTED_IMG="/dev/mapper/${LUKS_MAPPER_NAME}"}
+export LUKS_MAPPER_NAME ROOTFS_ENC_IMG
+export ROOTFS_DECRYPTED_IMG
+
+: ${DMVERITY_ROOTFS_HASH_IMG=dmverity-hash.img}
+: ${DMVERITY_HEADER_TEXT_FILE=dmverity-header.txt}
+export DMVERITY_ROOTFS_HASH_IMG DMVERITY_HEADER_TEXT_FILE
+
+
+
+do_or_die() {
+	eval "$@" || { echo -e "\x1b[41m$@\x1b[0m" ; exit 1 ; }
+}
+
+# Not checking for errors here it's informative
+print_kernel_cmdline_enabling_guidelines() {
+	local uuid_rootfs_enc_img uuid_hash_img root_hash
+	root_hash=$(grep "Root hash:" $DMVERITY_HEADER_TEXT_FILE | tr -d '[:space:]' | cut -d':' -f2)
+	uuid_rootfs_enc_img=$(blkid -s UUID ${ROOTFS_ENC_IMG}  | cut -d\" -f2)
+	# I only tested with /dev/vdc so far
+	uuid_hash_img=$(blkid -s UUID ${DMVERITY_ROOTFS_HASH_IMG}  | cut -d\" -f2)
+
+	# we don't have to specify systemd.verity once a roothash= parameter is in place. You could add it though
+	# the '\' are intentional, so that it is easily copy pastable into grub, and also clearer. For U-Boot or for one liners
+	# one could easily modify the output (e.g. pipe the output below, excluding the DONE line to  tr -d '\n' | tr  -d '\\' )
+	echo "DONE. You may want to add the following to your kernel command line (or the equivalents to fstab/crypttab/veritytab...). BE SUPER CAREFUL OF TRAILING SPACES AFTER \\ IF YOU KEEP NEWLINES!
+root=/dev/mapper/root \\
+rd.luks.name=${uuid_rootfs_enc_img}=${LUKS_MAPPER_NAME} \\ 
+systemd.verity_root_data=/dev/mapper/${LUKS_MAPPER_NAME} \\ 
+systemd.verity_root_hash=UUID=${uuid_hash_img} \\
+roothash=${root_hash} \
+
+"
+}
+
+main() {
+
+	echo -e "\x1b[42mEncrypting your device\x1b[0m"
+	do_or_die DONT_CLOSE_LUKS_MAPPER_DEVICE=true $SCRIPT_LUKS_PREPARE
+
+	echo -e "\x1b[42mSetting up dmverity for your encrypted device (read: for what it encrypts)\x1b[0m"
+	do_or_die $SCRIPT_DMVERITY_PREPARE setup
+
+	do_or_die $SCRIPT_DMVERITY_PREPARE verify
+
+	sudo cryptsetup close "$LUKS_MAPPER_NAME" || { echo "Failed to close the device" ; exit 123 ; }
+
+	print_kernel_cmdline_enabling_guidelines
+}
+
+main $@

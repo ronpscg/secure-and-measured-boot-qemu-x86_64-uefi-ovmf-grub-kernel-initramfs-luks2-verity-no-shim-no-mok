@@ -23,7 +23,7 @@ build_grub_core() (
 build_standalone_image() (
 	cd $GRUB_BUILDER_DIR
 	./grub-mkstandalone -O x86_64-efi -o grubx64.efi --directory=./grub-core  \
-		--modules="part_gpt part_msdos ext2 linux normal boot configfile search ls cat echo test tpm2_measure"
+		--modules="part_gpt part_msdos ext2 linux normal boot configfile search ls cat echo test" \
 			--fonts="" --locales="" --themes=""  \
 		"boot/grub/grub.cfg=$GRUB_CONFIG"
 )

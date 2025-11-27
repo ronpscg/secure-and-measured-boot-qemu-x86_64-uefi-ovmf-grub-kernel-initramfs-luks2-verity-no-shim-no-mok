@@ -47,7 +47,7 @@ build() (
 	# patch  # doesn't do anything anyway now. But read the comments there!
 	
 	# build is defined in the edksetup.sh file. it will not take precedence, so use command explicitly to avoid a recursive call to this very function the commend is written in
-	command build -DSECURE_BOOT_ENABLE -DSHELL_TYPE=BUILD_SHELL -bRELEASE  -pOvmfPkg/OvmfPkgX64.dsc -aX64  -tGCC -n$(nproc)
+	command build -DSECURE_BOOT_ENABLE -DSHELL_TYPE=BUILD_SHELL -DTPM2_ENABLE -bRELEASE  -pOvmfPkg/OvmfPkgX64.dsc -aX64  -tGCC -n$(nproc)
 
 
 	#
