@@ -1,6 +1,6 @@
 #!/bin/bash
-
-. ../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
 
 # Run setup to just get the code and then use it offline (with the exception of the ramdisk builder which builds fast and there is no point to hold back on it)
 # TODO: if I add a rootfs generator here (better use in PscgBuildOS, but perhaps I'll add a debootstrap step or something) - it will also be in the setup step, as no configurations
