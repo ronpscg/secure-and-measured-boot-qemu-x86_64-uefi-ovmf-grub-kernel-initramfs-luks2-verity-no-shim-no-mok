@@ -79,7 +79,7 @@ sudo dd if="$DMVERITY_ROOTFS_HASH_IMG" of="$P3" bs=4M status=progress
 
 echo ""
 echo "These are your partitions and block ids:"
-blkid ${LOOP_DEV}*
+sudo blkid ${LOOP_DEV}*
 echo ""
 
 echo "[+] Cleaning up..."

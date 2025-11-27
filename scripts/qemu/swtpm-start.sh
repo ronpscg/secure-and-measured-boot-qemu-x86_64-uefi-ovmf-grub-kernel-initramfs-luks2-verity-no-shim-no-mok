@@ -12,7 +12,7 @@ mkdir -p $TPM_STATE_DIR
 
 swtpm socket \
     --tpm2 \
-    --tpmstate dir=tpm-state \
+    --tpmstate dir=${TPM_STATE_DIR} \
     --ctrl type=unixio,path=${TPM_STATE_DIR}/swtpm-sock \
     --flags not-need-init \
     --log level=20 \

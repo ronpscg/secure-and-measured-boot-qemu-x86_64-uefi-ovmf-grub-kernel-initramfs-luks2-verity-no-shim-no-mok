@@ -10,13 +10,10 @@ echo "If you have a key, replace your key ID with it"
 
 # gpg --full-generate-key # see example output below  - this is where I took the number from, you must use your own
 #
+echo "[+] Exporting $KEYID to $GRUB_PGP_PUBLIC_KEY"
 gpg --export -o $GRUB_PGP_PUBLIC_KEY $KEYID
 
-
-
-
-
-exit 0
+exit $?
 
 $ gpg --full-generate-key
 gpg (GnuPG) 2.4.4; Copyright (C) 2024 g10 Code GmbH

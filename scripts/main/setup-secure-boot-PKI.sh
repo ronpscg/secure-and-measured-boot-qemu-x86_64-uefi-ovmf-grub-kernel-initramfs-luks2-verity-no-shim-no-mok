@@ -1,6 +1,9 @@
 #!/bin/bash
 
-. ../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+
+dpkg -s efitools || sudo apt-get install -y efitools
 
 set -euo pipefail
 

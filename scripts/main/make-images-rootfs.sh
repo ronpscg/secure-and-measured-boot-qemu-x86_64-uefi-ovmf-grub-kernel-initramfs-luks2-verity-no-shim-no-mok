@@ -2,6 +2,7 @@
 set -euo pipefail
 LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 . $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+cd $LOCAL_DIR
 
 : ${ROOTFS_IMG=$ARTIFACTS_DIR/rootfs.img}
 : ${ROOTFS_ENC_IMG="$ARTIFACTS_DIR/rootfs.enc.img"}
@@ -40,5 +41,5 @@ export SOURCE_SIZE_MIB=$ROOTFS_SIZE_MIB
 ./6-luks-and-dmverity-image.sh
 
 
-echo "Please update the GRUB config with the relevant UUIDs and values, and rerun make-images.sh"
+echo "Please update the GRUB config with the relevant UUIDs and values, and rerun make-images-boot-materials.sh"
 
