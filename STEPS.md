@@ -10,13 +10,25 @@ Without SHIM GRUB will require you to sign (with its keys) the kernel and initra
 
 Then - the rootfs  (in our project - yes - if you want to add kernel modules you may want to do several passes, but that's for the PscgDebOS, or for Yocto Project et. al, not for this example)
 
-Then - make-images.sh because it builds quickly for very quick changes
+Then - make-images-boot-materials.sh because it builds quickly for very quick changes
 
 Then - make the combined image - make a disk with GPT partitions
 
 ### What to run where (I'll make a docker for that later, this way I will also present more clearly the host depednencies (other than qemu-system-x86_64)
 
-To build the system, you would like to follow the contents of the next section, in the order they are listed.
+To build the system, you would like to follow the contents of the next sections, in the order they are listed.
+
+#### Install packages on your host
+At the time of writing the following packages need to be installed (assuming a Debian host, assming you have can run apt-get (with or without `sudo`)).
+```
+apt-get install build-essential git vim nasm iasl efitools  autoconf autopoint  bison flex libelf-dev libssl-dev debootstrap swtpm
+```
+
+Other packages that you may want to add, but I did not do it in an isolated way yet/or they are different between versions:
+- `cryptsetup` or `cryptsetupbin`
+- We'll see what else...
+
+There are likely other packages, and if I prepare a docker I will figure it out (do not the docker will likely be privileged given the notoriousity of working with loopback device in Docker, at least in most systems/without being exact on the provided capabilities which I don't have time to do)
 
 
 #### Key setup -  do these steps once
@@ -54,7 +66,7 @@ scripts/external-projects/setup-or-build.sh all
 (
 cd scripts/main
 make-images-rootfs.sh
-make-images.sh
+make-images-boot-materials.sh
 make-combined-gpt-disk-image.sh
 )
 ```
@@ -65,7 +77,10 @@ You can look at and run at the `scripts/qemu/` directory
 test-tmp.sh 
 ```
 
-In terms it runs the almost identical (I'll change it later maybe with some parameter)  `tpm-run-qemu.sh` or  `tpm-run-qemu-disk.sh` (one attaches several drives to QEMU, one uses the combined disk image)
+In terms it runs the almost identical (I'll change it later maybe with some parameter)  `tpm-run-qemu.sh` or  `tpm-run-qemu-disk.sh` (one attaches several drives to QEMU, one uses the combined disk image).
+
+**Known and annoying issues: with libswtpm:**
+If you run into errors from SWTPM - let me know, there are some known issues at first initalization, I think I have the workaround somewhere...
 
 
 ### Enrolling keys and achieving automatic unlocking on first boot in QEMU 
