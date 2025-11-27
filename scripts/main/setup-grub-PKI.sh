@@ -1,5 +1,8 @@
 #!/bin/bash
-. ../common.sh
+
+LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
+. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+
 echo "Please use your own GPG keys, or create RSA/DSA ones. This script will require you to do some manual steps as creating your key, and exporting it"
 echo "If you have a key, replace your key ID with it"
 
