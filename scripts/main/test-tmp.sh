@@ -18,4 +18,8 @@ export ROOTFS_IMG=$DIR/rootfs.enc.img
 export DMVERITY_HASH_IMG=${DIR}/dmverity-hash.img 
 export TPM_STATE_DIR=${DIR}/tpm-state
 
-./tpm-run-qemu.sh
+
+export GPT_COMBINED_DISK_IMG=$DIR/usb_image.hdd.img
+
+# ./tpm-run-qemu.sh		# Run this for image separation (could also actually provide the rootfs like this for an unencrypted/unverified case...
+./tpm-run-qemu-disk.sh		# Run this to run the entire disk image, as it would be present on a real hardware
