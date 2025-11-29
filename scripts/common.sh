@@ -21,6 +21,16 @@ DL_DIR=$REQUIRED_PROJECTS_DIR
 mkdir -p $REQUIRED_PROJECTS_DIR $REQUIRED_PROJECTS_ARTIFACTS_DIR $ARTIFACTS_DIR || { echo "Can't (re)create base directories" ; exit 1 ; }
 
 
+: ${COMMON_CONFIG_FILE=$BUILD_TOP/local.config}
+if [ -f $COMMON_CONFIG_FILE ] ; then
+	. $COMMON_CONFIG_FILE
+else
+	echo -e "\x1b[33mWARN: you did not set a local configuration file. If you want to build a full image with your own GPG keys, you want to either populate $BUILD_TOP/local.config with your environment variables (for every overriden enviroment variable), or set the COMMON_CONFIG_FILE=<your config file> prior to sourcing $(basename $0)\x1b[0m"
+fi
+
+# Secure boot is relevant for several projects and their interaction
+: ${SECURE_BOOT=true}
+
 #----------------------------------------------------
 # ESP and boot materials definitions
 # It is common in the sense that this is where kernel
@@ -57,21 +67,23 @@ fi
 # PscgBuildOS and some of my other work organizes things more nicely and ALWAYS separates the source from the build directory. Since here everything was hacked brutally quickly,
 # I am presenting the in folder way. Which is fine, as it is easier for most people either way
 
-KV=6.18-rc7
+: ${KV=6.18-rc7}
 KERNEL_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/linux-$KV
-KERNEL_CONFIG=$BUILD_TOP/kernel-configs/config-x86_64_tpm-dmcrypt-dmverity
+: ${KERNEL_CONFIG=$BUILD_TOP/kernel-configs/config-x86_64_tpm-dmcrypt-dmverity}
 
 #----------------------------------------------------
 # Grub definitions
 #----------------------------------------------------
 GRUB_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/grub
-GRUB_CONFIG=$BUILD_TOP/grub-configs/config-grub-wip.cfg
+ : ${GRUB_CONFIG=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
 # The PGP lines are required strictly for GRUB without SHIM 
 # NB: (if UKI is not used - which for now it isn't for several reasons - one is ease of development, others are avoiding systemd-boot and chainloading etc.)
 GRUB_PGP_PUBLIC_KEY=$ARTIFACTS_DIR/grub-pubkey.gpg
 : ${GRUB_PGP_EMAIL=grubexample@thepscg.com}
 : ${GRUB_GPG_KEY_ID=8A79B38F2589CE82C6BE80CB2C3D2B57F2161903}
 
+# Everything is better with a standalone GRUB, but also allow a grub-mkimage variant. Default is false to bette represent a vanilla Yocto Project build
+: ${GRUB_BUILD_STANDALONE=false} 
 
 #----------------------------------------------------
 # OVMF (EDK2) definitions

@@ -25,9 +25,14 @@ mkdir -p $BOOT_FS_FOLDER
 cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/bzImage $BOOT_FS_FOLDER
 cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/initrd.img $BOOT_FS_FOLDER
 
-echo "[+] Updating standalone GRUB with latest configuration"
-export SECURE_BOOT=true # TODO put elsewhere
-(  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_standalone_image && ./build-grub.sh copy_artifacts )
+if [ "$GRUB_BUILD_STANDALONE" = "true" ] ; then
+	echo "[+] Updating standalone GRUB with latest configuration"
+	(  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_standalone_image && ./build-grub.sh copy_artifacts )
+else
+	echo "[+] Updating non-standalone GRUB with latest configuration"
+	(  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_nonstandalone_image && ./build-grub.sh copy_artifacts )
+fi
+
 cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/grubx64.efi $ARTIFACTS_DIR/grubx64.efi
 if [ "$SECURE_BOOT" = "true" ] ; then 
 	echo "[+] Adding signed GRUB to the ESP materials"

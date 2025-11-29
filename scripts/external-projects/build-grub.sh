@@ -20,6 +20,33 @@ build_grub_core() (
 	echo "Done building GRUB core"
 )
 
+
+# This uses grub-mkimage, which does not encapsulate the $GRUB_CONFIG in it.
+# This is what you would want to do, for example, if you use Yocto Project and don't want to tinker around the recipes and add your own build step
+build_nonstandalone_image() (
+	cd $GRUB_BUILDER_DIR
+	# Create the memdisk filesystem. You get it for granted in the standalone version
+	# Don't use mktemp, and leave the tarball for debugging if someone wants. This is not the best practice but if you run into issues with it
+	# it is definitely "your fault" and you know what you are doing
+	rm -rf /tmp/grub-memdisk-workdir/
+	mkdir -p /tmp/grub-memdisk-workdir/boot/grub/
+	cp $GRUB_CONFIG /tmp/grub-memdisk-workdir/boot/grub/grub.cfg
+	( cd /tmp/grub-memdisk-workdir && tar cf /tmp/grub-memdisk.tar . && tar tf /tmp/grub-memdisk.tar )
+
+	# grub-mkimage requires specifying modules explicitly
+	# minicmd has help, lsmod etc. One could include help, but there is no module for lsmod
+	: ${GRUB_MODULES="
+		part_gpt part_msdos ext2 linux normal boot memdisk configfile search fat ls cat echo test gcry_dsa gcry_rsa gcry_sha256 pubkey pgp \
+		tar minicmd efifwsetup
+		tpm \
+	"}
+	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \
+		--disable-shim-lock \
+		--pubkey=$GRUB_PGP_PUBLIC_KEY \
+		-m /tmp/grub-memdisk.tar \
+		$GRUB_MODULES
+)
+
 build_standalone_image() (
 	cd $GRUB_BUILDER_DIR
 	./grub-mkstandalone -O x86_64-efi -o grubx64.efi --directory=./grub-core  \
