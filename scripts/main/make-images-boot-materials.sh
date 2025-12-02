@@ -31,6 +31,16 @@ mkdir -p $BOOT_FS_FOLDER
 cp ${KERNEL_ARTIFACT} ${BOOT_FS_FOLDER}/${TARGET_KERNEL_NAME}
 cp ${INITRAMFS_ARTIFACT} $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
 
+if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
+	echo "[+] Sourcing $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE and updating $GRUB_CONFIG accordingly"
+	( 
+	# in a subshell to not spam the environment although maybe other elements require it as well
+	set -a 
+	. $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE &&  $LOCAL_DIR/../external-projects/build-grub.sh update_grub_work_config
+	set +a
+	)       
+fi
+
 if [ "$GRUB_BUILD_STANDALONE" = "true" ] ; then
 	echo "[+] Updating standalone GRUB with latest configuration"
 	(  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_standalone_image && ./build-grub.sh copy_artifacts )

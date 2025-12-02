@@ -10,6 +10,7 @@ cd $LOCAL_DIR
 : ${ROOTFS_DECRYPTED_IMG="/dev/mapper/${LUKS_MAPPER_NAME}"}
 : ${DMVERITY_ROOTFS_HASH_IMG=$ARTIFACTS_DIR/dmverity-hash.img}
 : ${DMVERITY_HEADER_TEXT_FILE=$ARTIFACTS_DIR/dmverity-header.txt}
+: ${LUKS_AND_DMVERITY_EXPORTED_ENV_FILE=$ARTIFACTS_DIR/luks-and-dmverity-kernel-cmdline-values.env} # aimed to be sourced when updating the bootloader materials
 
 echo "[+] Creating the rootfs image"
 ROOTFS_SIZE_MIB=$(echo "$(( ($(sudo du -sb $ROOTFS_FS_FOLDER  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc) # size of the current folder +40% for metadata and some extra working space
@@ -38,6 +39,8 @@ export ROOTFS_DECRYPTED_IMG
 
 export DMVERITY_ROOTFS_HASH_IMG DMVERITY_HEADER_TEXT_FILE
 export SOURCE_SIZE_MIB=$ROOTFS_SIZE_MIB
+
+export LUKS_AND_DMVERITY_EXPORTED_ENV_FILE
 ./6-luks-and-dmverity-image.sh
 
 

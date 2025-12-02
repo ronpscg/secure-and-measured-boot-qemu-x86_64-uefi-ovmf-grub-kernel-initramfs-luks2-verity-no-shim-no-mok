@@ -54,6 +54,10 @@ fi
 # This has nothing to do with the boot loaders, only with the "Firmware Setup" menu (or its equivalents!)
 : ${BOOT_UEFI_KEYS_FOLDER=$ESP_FS_FOLDER/keys}
 
+#----------------------------------------------------
+# more common definitions
+#----------------------------------------------------
+: ${LUKS_AND_DMVERITY_EXPORTED_ENV_FILE=$ARTIFACTS_DIR/luks-and-dmverity-kernel-cmdline-values.env} # aimed to be sourced when updating the bootloader materials
 
 #====================================================
 # Per external project ("component") building definitions
@@ -77,6 +81,8 @@ KERNEL_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/linux-$KV
 GRUB_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/grub
  : ${GRUB_CONFIG=$REQUIRED_PROJECTS_ARTIFACTS_DIR/grub.cfg}
  : ${GRUB_CONFIGS=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
+ : ${GRUB_DEFAULT_ENTRY=0}
+ : ${GRUB_DEFAULT_TIMEOUT=20}
 # The PGP lines are required strictly for GRUB without SHIM 
 # NB: (if UKI is not used - which for now it isn't for several reasons - one is ease of development, others are avoiding systemd-boot and chainloading etc.)
 GRUB_PGP_PUBLIC_KEY=$ARTIFACTS_DIR/grub-pubkey.gpg
