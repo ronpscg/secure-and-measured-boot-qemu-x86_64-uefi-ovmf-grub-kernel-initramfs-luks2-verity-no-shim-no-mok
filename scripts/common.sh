@@ -75,7 +75,8 @@ KERNEL_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/linux-$KV
 # Grub definitions
 #----------------------------------------------------
 GRUB_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/grub
- : ${GRUB_CONFIG=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
+ : ${GRUB_CONFIG=$REQUIRED_PROJECTS_ARTIFACTS_DIR/grub.cfg}
+ : ${GRUB_CONFIGS=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
 # The PGP lines are required strictly for GRUB without SHIM 
 # NB: (if UKI is not used - which for now it isn't for several reasons - one is ease of development, others are avoiding systemd-boot and chainloading etc.)
 GRUB_PGP_PUBLIC_KEY=$ARTIFACTS_DIR/grub-pubkey.gpg
