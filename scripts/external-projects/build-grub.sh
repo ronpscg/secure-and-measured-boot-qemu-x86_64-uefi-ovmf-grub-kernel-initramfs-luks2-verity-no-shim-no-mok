@@ -23,7 +23,27 @@ build_grub_core() (
 
 # This uses grub-mkimage, which does not encapsulate the $GRUB_CONFIG in it.
 # This is what you would want to do, for example, if you use Yocto Project and don't want to tinker around the recipes and add your own build step
+# This is WIP - we could encapsulate very minimal config that would be read BEFORE modules are loaded (and does not support almost anything), using -c <config file>, which
+# is basically what the Yocto project does but I won't do it now, it's WIP
+#
 build_nonstandalone_image() (
+	echo -e "\x1b[43mWarning this has not been run/tested/etc., it's a preparation, for something I don't support\x1b[0m"
+
+	cd $GRUB_BUILDER_DIR
+	# grub-mkimage requires specifying modules explicitly
+	# minicmd has help, lsmod etc. One could include help, but there is no module for lsmod
+	: ${GRUB_MODULES="
+		part_gpt part_msdos ext2 linux normal boot memdisk configfile search fat ls cat echo test gcry_dsa gcry_rsa gcry_sha256 pubkey pgp \
+		tar minicmd efifwsetup
+		tpm \
+	"}
+	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \
+		--disable-shim-lock \
+		--pubkey=$GRUB_PGP_PUBLIC_KEY \
+		$GRUB_MODULES
+)
+
+build_standalone_image_with_mkimage() (
 	cd $GRUB_BUILDER_DIR
 	# Create the memdisk filesystem. You get it for granted in the standalone version
 	# Don't use mktemp, and leave the tarball for debugging if someone wants. This is not the best practice but if you run into issues with it
@@ -97,13 +117,36 @@ update_grub_work_config() {
 	done
 
 
-	echo "DONE. Your updated $GRUB_CONFIG is"
-	cat $GRUB_CONFIG
+	echo "DONE creating $GRUB_CONFIG"
+
+       	: ${GRUB_DEBUG_CONFIG_FILE_BUILD=false}	
+	if [ "$GRUB_DEBUG_CONFIG_FILE_BUILD" = "true" ] ; then
+		echo "Your updated $GRUB_CONFIG is"
+		cat $GRUB_CONFIG
+	fi
+}
+
+build_grub_efi() {
+	if [ "$GRUB_BUILD_STANDALONE" = "false" ] ; then
+		echo "Non standalone building is not yet fully supported, and I don't know if it will be"
+		return 1 
+		# Should work, but I did not test yet and I have more important things to attend now...
+		build_nonstandalone_image
+	fi
+
+	echo "Building GRUB EFI proper using $GRUB_BUILD_STANDALONE"
+	if [ "$GRUB_BUILD_STANDALONE" = "grub-mkstandalone" ] ; then
+		build_standalone_image
+	elif [ "$GRUB_BUILD_STANDALONE" = "grub-mkimage" ] ; then
+		build_standalone_image_with_mkimage
+	else
+		echo "Wrong mode. Exiting"
+		return 1
+	fi
 }
 
 build() (
 	build_grub_core
-	build_standalone_image # requires the configuration file
 	echo "Build done (grub-core). Please build a standalone (grub-mkstandalone or with the respective grub-mkimage flags) image. Only then, you may copy your artifacts from $GRUB_BUILDER_DIR/grubx64.efi"
 	echo "The reason for that is to allow you to update your configurations (e.g. UUID's, and other things), and experiment with the set of GRUB modules you actually need"
 	echo "If you want GRUB to be the default EFI boot app make sure you put in under the EFI System Partition's (ESP's) EFI/BOOT/BOOTX64.EFI file"

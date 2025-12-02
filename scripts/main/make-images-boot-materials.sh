@@ -31,6 +31,8 @@ mkdir -p $BOOT_FS_FOLDER
 cp ${KERNEL_ARTIFACT} ${BOOT_FS_FOLDER}/${TARGET_KERNEL_NAME}
 cp ${INITRAMFS_ARTIFACT} $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
 
+
+echo "[+] Creating the GRUB image to include in your target"
 if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
 	echo "[+] Sourcing $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE and updating $GRUB_CONFIG accordingly"
 	( 
@@ -41,15 +43,18 @@ if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
 	)       
 fi
 
-if [ "$GRUB_BUILD_STANDALONE" = "true" ] ; then
-	echo "[+] Updating standalone GRUB with latest configuration"
-	(  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_standalone_image && ./build-grub.sh copy_artifacts )
-else
-	echo "[+] Updating non-standalone GRUB with latest configuration"
-	(  cd $LOCAL_DIR/../external-projects && ./build-grub.sh build_nonstandalone_image && ./build-grub.sh copy_artifacts )
-fi
+. $LOCAL_DIR/../external-projects/build-grub.sh build_grub_efi
+. $LOCAL_DIR/../external-projects/build-grub.sh copy_artifacts
 
+# Note: in general, if full A/B update is required, there will be more folders naturally, and one can find themselves putting the boot materials, and the GRUB config in another (e.g. ext4) partition. One can extend this functionality to sign GRUB modules, fonts, etc. For now there will be support only for a separate config file, and it will be 
+# copied to the same place the GRUB EFI is copied to (doesn't have to be like this). One could go and have that file load other files from other partitions etc., which could be useful
+# for "playing" if secure boot is not enabled, or if they are signed
+if [ "$GRUB_BUILD_STANDALONE" = "false" -a "$GRUB_COPY_FILES_TO_TARGET" = "true" ] ; then
+	echo "Also copying grub.cfg"
+	cp $GRUB_CONFIG $ESP_FS_FOLDER/EFI/Boot/grub.cfg
+fi
 cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/grubx64.efi $ARTIFACTS_DIR/grubx64.efi
+
 if [ "$SECURE_BOOT" = "true" ] ; then 
 	echo "[+] Adding signed GRUB to the ESP materials"
 	# sbsign is from the sbsigntool . Install it if needed
@@ -72,6 +77,10 @@ if [ "$SECURE_BOOT" = "true" ] ; then
 	### initrd - fine to verify with GPG only (won't load without signing if secure boot and check_signature are on
 	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
 
+	if [ "$GRUB_BUILD_STANDALONE" = "false" -a "$GRUB_COPY_FILES_TO_TARGET" = "true" ] ; then
+		echo "Also signing grub.cfg"
+		gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign  $ESP_FS_FOLDER/EFI/Boot/grub.cfg
+	fi
 else
 	echo "[+] Adding unsigned GRUB to the ESP materials"
 	cp $ARTIFACTS_DIR/grubx64.efi $ESP_FS_FOLDER/EFI/Boot/bootx64.efi # This is the unsigned version

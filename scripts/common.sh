@@ -98,8 +98,14 @@ GRUB_PGP_PUBLIC_KEY=$ARTIFACTS_DIR/grub-pubkey.gpg
 : ${GRUB_PGP_EMAIL=grubexample@thepscg.com}
 : ${GRUB_GPG_KEY_ID=8A79B38F2589CE82C6BE80CB2C3D2B57F2161903}
 
-# Everything is better with a standalone GRUB, but also allow a grub-mkimage variant. Default is false to bette represent a vanilla Yocto Project build
-: ${GRUB_BUILD_STANDALONE=false} 
+# Everything is better with a standalone GRUB, but also allow a grub-mkimage variant.
+# false: don't build standalone at all, and include some defaults and a config file (not entirely implemented yet) ; grub-mkimage - use grub-mkimage. grub-mkstandalone - use grub-mkstandalone
+# my personal preference is to use grub-mkstandalone. Yocto Project's default would be to use false, but there are known issues with Scarthgap and Grub 2.12, so this entire "mechanism" is made due to that, and might be removed later altogether
+: ${GRUB_BUILD_STANDALONE=grub-mkimage} 
+
+# Preparation for also copying or signing GRUB configuration files (this is for demonstrations and comparisons with some Yocto Project defaults)
+# Could be extended to list of files and folder, but will likely not be (as I recommend to build a standalone this way or another)
+: ${GRUB_COPY_FILES_TO_TARGET=false}
 
 #----------------------------------------------------
 # OVMF (EDK2) definitions
