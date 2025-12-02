@@ -5,11 +5,16 @@
 : ${ROOTFS_ENC_IMG="./rootfs.enc.img"}     # Path for the final, encrypted LUKS container
 : ${LUKS_MAPPER_NAME="dmcryptdevice-luks"} # Mapped name under /dev/mapper/ . The "decrypted" device is to be accessed through there.
 : ${SOURCE_SIZE_MIB=4096}                  # Size of your unencrypted rootfs.img in MiB. We could use du -b or something like that, but I just wanted to demonstrate
+
+# The buffer should be enough for the header, and in this case, there is no reason to resize the filesystem
+# in that case, it is just fine to use the cleartext root filesystem as it is
+# otherwise, if it is touched via fsck or resize2fs, the verity has would change.
 HEADER_SAFETY_BUFFER_MIB=36                # Buffer size (32 MiB for header + safety)
 
-: ${LUKS_PASSWORD="pass"}		   # This is bad practice of course - but it makes it easier to provision TPM devices on the first time (key can be removed or altered later)
-: ${DONT_CLOSE_LUKS_MAPPER_DEVICE=false}    # Set this to true to keep device open, e.g. if you want to use this with another script after setup
-: ${DONT_RESIZE_TARGET_FS=false}            # Set this to true to avoid fsck
+: ${LUKS_PASSWORD="pass"}                        # This is bad practice of course - but it makes it easier to provision TPM devices on the first time (key can be removed or altered later)
+: ${DONT_CLOSE_LUKS_MAPPER_DEVICE=false}         # Set this to true to keep device open, e.g. if you want to use this with another script after setup
+: ${LUKS_DONT_RESIZE_TARGET_FS=false}            # Set this to true to avoid resizing the device
+: ${LUKS_DONT_FSCK_TARGET_FS=false}              # Set this to true to avoid fsck
 
 
 if [ ! -f "$ROOTFS_IMG" ]; then
@@ -68,10 +73,11 @@ copy_source_fs_to_luks_container() {
 resize_target_rootfs_and_cleanup() {
 	echo "[+] Finalizing and closing volume..."
 	# Force check the filesystem inside LUKS
-	sudo e2fsck -f $TARGET_DEV || echo "Failed to fsck. You may have problems"
-
+	if [ ! "$LUKS_DONT_FSCK_TARGET_FS" = "true" ] ; then
+		sudo e2fsck -f $TARGET_DEV || echo "Failed to fsck. You may have problems"
+	fi
 	# Grow the ext4 filesystem to fill the container space
-	if [ ! "$DONT_RESIZE_TARGET_FS" = "true" ] ; then
+	if [ ! "$LUKS_DONT_RESIZE_TARGET_FS" = "true" ] ; then
 		sudo resize2fs $TARGET_DEV || echo "Failed to resizefs. You may have problems"
 	fi
 

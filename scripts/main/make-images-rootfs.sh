@@ -7,10 +7,17 @@ cd $LOCAL_DIR
 : ${ROOTFS_IMG=$ARTIFACTS_DIR/rootfs.img}
 : ${ROOTFS_ENC_IMG="$ARTIFACTS_DIR/rootfs.enc.img"}
 : ${LUKS_MAPPER_NAME="dmcryptdevice-luks"}
-: ${ROOTFS_DECRYPTED_IMG="/dev/mapper/${LUKS_MAPPER_NAME}"}
+: ${ROOTFS_DECRYPTED_IMG="${ROOTFS_IMG}"}  # See notes if you want to set it to "/dev/mapper/${LUKS_MAPPER_NAME}
 : ${DMVERITY_ROOTFS_HASH_IMG=$ARTIFACTS_DIR/dmverity-hash.img}
 : ${DMVERITY_HEADER_TEXT_FILE=$ARTIFACTS_DIR/dmverity-header.txt}
 : ${LUKS_AND_DMVERITY_EXPORTED_ENV_FILE=$ARTIFACTS_DIR/luks-and-dmverity-kernel-cmdline-values.env} # aimed to be sourced when updating the bootloader materials
+
+# If the verity hash is created separately from the LUKS image (i.e. directly from the cleantext rootfs)
+# one must NOT resize or fsck the hash. We give both options there, and it makes for a great exercise as well.
+if [ ! "$ROOTFS_DECRYPTED_IMG" = "/dev/mapper/${LUKS_MAPPER_NAME}" ] ; then
+	export LUKS_DONT_RESIZE_TARGET_FS=true
+	export LUKS_DONT_FSCK_TARGET_FS=true
+fi
 
 echo "[+] Creating the rootfs image"
 ROOTFS_SIZE_MIB=$(echo "$(( ($(sudo du -sb $ROOTFS_FS_FOLDER  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc) # size of the current folder +40% for metadata and some extra working space
