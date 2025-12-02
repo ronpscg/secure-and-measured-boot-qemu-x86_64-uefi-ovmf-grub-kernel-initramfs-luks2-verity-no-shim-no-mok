@@ -3,6 +3,12 @@ set -euo pipefail
 LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 . $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
 
+# Allow getting the kernel and initramfs from other places (can do that for GRUB as well, but then will need to sign it externally)
+: ${KERNEL_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/bzImage}
+: ${INITRAMFS_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/initrd.img}
+: ${TARGET_KERNEL_NAME=bzImage}
+: ${TARGET_INITRAMFS_NAME=initrd.img}
+
 echo "[+] Populating ESP materials folder"  
 # don't worry about the case - fat is case insensitive. sticking to the cases you would likely see on any Linux machine
 mkdir -p $ESP_FS_FOLDER/EFI/Boot
@@ -22,8 +28,8 @@ fi
 
 echo "[+] Adding kernel and initramfs to $BOOT_FS_FOLDER"
 mkdir -p $BOOT_FS_FOLDER
-cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/bzImage $BOOT_FS_FOLDER
-cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/initrd.img $BOOT_FS_FOLDER
+cp ${KERNEL_ARTIFACT} ${BOOT_FS_FOLDER}/${TARGET_KERNEL_NAME}
+cp ${INITRAMFS_ARTIFACT} $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
 
 if [ "$GRUB_BUILD_STANDALONE" = "true" ] ; then
 	echo "[+] Updating standalone GRUB with latest configuration"
@@ -42,19 +48,19 @@ if [ "$SECURE_BOOT" = "true" ] ; then
 	cp $ARTIFACTS_DIR/grubx64.efi.signed $ESP_FS_FOLDER/EFI/Boot/bootx64.efi # This is the unsigned version
 
 	echo "[+] Signing everything GRUB loads directly with its PGP keys, and the kernel also with the EFI keys"
-	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage
+	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}
 
 	# Since GRUB uses the firmware to verify, this is required
 	sbsign --key $ARTIFACTS_DIR/keys/db.key --cert $ARTIFACTS_DIR/keys/db.crt \
-		--output $BOOT_FS_FOLDER/bzImage.signed $BOOT_FS_FOLDER/bzImage
+		--output $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}.signed $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}
 
 	# This is needed in case you would still like to verify the signature, and to avoid the "No one wants verification" error when there is no shim
 	# (I don't know if it can be pypassed without a GRUB patch)
-	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage.signed
+	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}.signed
 
 
 	### initrd - fine to verify with GPG only (won't load without signing if secure boot and check_signature are on
-	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/initrd.img
+	gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
 
 else
 	echo "[+] Adding unsigned GRUB to the ESP materials"
