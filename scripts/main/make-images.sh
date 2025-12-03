@@ -11,6 +11,13 @@ usage() {
 	echo "gpt: repackages the disk image, and only it"
 }
 
+if [ "$#" -lt "1" ] ; then
+	usage
+	exit 1
+fi
+
+set -euo pipefail
+
 case $1 in
 	all)
 		./make-images-rootfs.sh
