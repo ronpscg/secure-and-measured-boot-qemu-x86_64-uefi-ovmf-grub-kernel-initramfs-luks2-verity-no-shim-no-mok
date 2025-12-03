@@ -1,0 +1,23 @@
+# May be moved to another place before/after services
+[Unit]
+Description=Interactive Cryptenroll Setup
+DefaultDependencies=no
+After=local-fs.target systemd-remount-fs.service
+Before=sysinit.target basic.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StandardInput=tty-force
+StandardOutput=inherit
+StandardError=inherit
+TTYPath=/dev/console
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+ExecStart=/opt/scripts/enroll-tpm2-disk.sh
+TimeoutStartSec=0
+
+[Install]
+WantedBy=sysinit.target
