@@ -37,9 +37,11 @@ build_nonstandalone_image() (
 		tar minicmd efifwsetup
 		tpm \
 	"}
+	: ${GRUB_TARGET_CONFIG_FILE_PREFIX_DIR="/EFI/Boot"}
 	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \
 		--disable-shim-lock \
 		--pubkey=$GRUB_PGP_PUBLIC_KEY \
+		--prefix=$GRUB_TARGET_CONFIG_FILE_PREFIX_DIR \
 		$GRUB_MODULES
 )
 
@@ -129,9 +131,8 @@ update_grub_work_config() {
 build_grub_efi() {
 	if [ "$GRUB_BUILD_STANDALONE" = "false" ] ; then
 		echo "Non standalone building is not yet fully supported, and I don't know if it will be"
-		return 1 
-		# Should work, but I did not test yet and I have more important things to attend now...
 		build_nonstandalone_image
+		return
 	fi
 
 	echo "Building GRUB EFI proper using $GRUB_BUILD_STANDALONE"
@@ -154,6 +155,7 @@ build() (
 
 copy_artifacts() {
 	cp $GRUB_BUILDER_DIR/grubx64.efi $REQUIRED_PROJECTS_ARTIFACTS_DIR
+	# the grub config does not need to be copied because it is a single file that we already create in REQUIRED_PROJECTS_ARTIFACTS_DIR and has the same name
 }
 
 
