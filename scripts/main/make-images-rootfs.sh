@@ -21,21 +21,22 @@ fi
 
 echo "[+] Creating the rootfs image"
 if [ -f $ROOTFS_IMG ] ; then
-	echo "WARNING: rootfs.img existed. Would you like to remove it? [y/n]"
+	echo "WARNING: rootfs.img existed. Would you like to remove it? [y/n/^C]"
 	read
 	case $REPLY in
 		y|Y)
 			rm $ROOTFS_IMG
 			;;
-		"")
+		""|n)
 			# maybe make the default remove it instead
-			exit 1
+			echo "Keeping the current rootfs image"
 			;;
 		*)
 			exit 1
 			;;
 	esac	
 fi
+
 ROOTFS_SIZE_MIB=$(echo "$(( ($(sudo du -sb $ROOTFS_FS_FOLDER  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc) # size of the current folder +40% for metadata and some extra working space
 ROOTFS_MOUNT=$ARTIFACTS_DIR/rootfs.mount
 fallocate -l ${ROOTFS_SIZE_MIB}MiB $ROOTFS_IMG
