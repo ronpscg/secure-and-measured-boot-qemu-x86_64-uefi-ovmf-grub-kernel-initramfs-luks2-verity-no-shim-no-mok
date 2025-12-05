@@ -1,6 +1,7 @@
 #!/bin/bash
 LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 
+: ${DONTSOURCECOMMONENV=""}
 if [ -z "$BBPATH" -a -z "$DONTSOURCECOMMONENV" ] ; then
 	. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
 else
@@ -44,6 +45,9 @@ init_folders() {
 }
 
 copy_kernel_and_initramfs() {
+        if [ "$MAKEIMAGE_STEP_DONT_COPY_KERNEL_AND_INITRAMFS" = "true" ] ; then
+                return
+        fi
 	echo "[+] Adding kernel and initramfs to $BOOT_FS_FOLDER"
 	mkdir -p $BOOT_FS_FOLDER
 	cp ${KERNEL_ARTIFACT} ${BOOT_FS_FOLDER}/${TARGET_KERNEL_NAME}
@@ -51,6 +55,9 @@ copy_kernel_and_initramfs() {
 }
 
 copy_grub() {
+        if [ "$MAKEIMAGE_STEP_DONT_COPY_GRUB" = "true" ] ; then
+                return
+        fi
 	echo "[+] Copying the GRUB image to the artifacts dir and to the target $ESP_FS_FOLDER/EFI/Boot/"
 	# Note: in general, if full A/B update is required, there will be more folders naturally, and one can find themselves putting the boot materials, and the GRUB config in another (e.g. ext4) partition. One can extend this functionality to sign GRUB modules, fonts, etc. For now there will be support only for a separate config file, and it will be 
 	# copied to the same place the GRUB EFI is copied to (doesn't have to be like this). One could go and have that file load other files from other partitions etc., which could be useful
@@ -64,6 +71,10 @@ copy_grub() {
 }
 
 update_grub() {
+        if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB" = "true" ] ; then
+                return
+        fi
+
 	echo "[+] Creating the GRUB image to include in your target"
 	if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
 		echo "[+] Sourcing $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE and updating $GRUB_CONFIG accordingly"
@@ -87,6 +98,10 @@ update_grub() {
 # We deliberately separated the functions, so the name of this function might be a bit misleading. We hope this comment clarifies it.
 #
 sign_grub_loaded_elements() {
+        if [ "$MAKEIMAGE_STEP_DONT_SIGN_GRUB_LOADED_ELEMENTS" = "true" ] ; then
+                return
+        fi
+
 	if [ "$SECURE_BOOT" = "true" ] ; then 
 		echo "[+] Signing everything GRUB loads directly with its PGP keys"
 		gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}
@@ -110,6 +125,10 @@ sign_grub_loaded_elements() {
 
 
 sign_efi_loaded_elements() {
+        if [ "$MAKEIMAGE_STEP_DONT_SIGN_EFI_LOADED_ELEMENTS" = "true" ] ; then
+                return
+        fi
+
 	if [ "$SECURE_BOOT" = "true" ] ; then 
 		echo "[+] Adding signed GRUB to the ESP materials"
 		# sbsign is from the sbsigntool . Install it if needed
@@ -133,6 +152,9 @@ sign_boot_elements() {
 }
 
 copy_ovmf() {
+	if [ "$MAKEIMAGE_STEP_DONT_COPY_OVMF" = "true" ] ; then
+		return
+	fi
 	echo "[+] Updating OVFM_CODE.fd"
 	cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/OVMF_CODE.fd $ARTIFACTS_DIR
 
@@ -147,10 +169,10 @@ copy_ovmf() {
 
 main() {
 	init_folders			# Set the work folders where the ESP will be populated and the EFI apps will reside, and where the Linux materials will reside
-	[ -z "$DONTSOURCECOMMONENV" ] && copy_ovmf			# Copy over the already built OVMF code, and the OVMF vars if need be (if it is the first time. You would usally want to keep the vars state)
+	copy_ovmf			# Copy over the already built OVMF code, and the OVMF vars if need be (if it is the first time. You would usally want to keep the vars state)
 	copy_kernel_and_initramfs	# Copy over the already built kernel and initramfs
 
-	[ -z "$DONTSOURCECOMMONENV" ]  && update_grub			# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
+	update_grub			# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
 	copy_grub			# Separating copying from updating, to allow copying a config file where it is separate and rebuilding GRUB is not necessary
 	
 	sign_boot_elements		# This signs everything that needs to be signed
