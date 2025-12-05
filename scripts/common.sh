@@ -28,6 +28,17 @@ else
 	echo -e "\x1b[33mWARN: you did not set a local configuration file. If you want to build a full image with your own GPG keys, you want to either populate $BUILD_TOP/local.config with your environment variables (for every overriden enviroment variable), or set the COMMON_CONFIG_FILE=<your config file> prior to sourcing $(basename $0)\x1b[0m"
 fi
 
+#----------------------------------------------------
+# Image build tasks
+#----------------------------------------------------
+: ${MAKEIMAGE_STEP_DONT_COPY_KERNEL_AND_INITRAMFS=false}
+: ${MAKEIMAGE_STEP_DONT_COPY_OVMF=false}
+: ${MAKEIMAGE_STEP_DONT_UPDATE_GRUB=false}
+: ${MAKEIMAGE_STEP_DONT_COPY_GRUB=false}
+: ${MAKEIMAGE_STEP_DONT_SIGN_GRUB_LOADED_ELEMENTS=false}
+: ${MAKEIMAGE_STEP_DONT_SIGN_EFI_LOADED_ELEMENTS=false}
+
+
 # Secure boot is relevant for several projects and their interaction
 : ${SECURE_BOOT=true}
 
