@@ -1,13 +1,6 @@
 #!/bin/bash
 LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 
-: ${DONTSOURCECOMMONENV=""}
-if [ -z "$BBPATH" -a -z "$DONTSOURCECOMMONENV" ] ; then
-	. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
-else
-	. $LOCAL_DIR/bitbake.env || { echo "Please make sure you have the right set of files to run this from bitbake" ; exit 1 ; }
-fi
-
 set -euo pipefail
 
 # Allow getting the kernel and initramfs from other places (can do that for GRUB as well, but then will need to sign it externally)
