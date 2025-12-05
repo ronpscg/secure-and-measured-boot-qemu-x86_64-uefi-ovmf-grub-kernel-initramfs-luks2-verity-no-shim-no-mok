@@ -1,13 +1,30 @@
 #!/bin/bash
-set -euo pipefail
 LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
-. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+
+if [ -z "$BBPATH" -a -z "$DONTSOURCECOMMONENV" ] ; then
+	. $LOCAL_DIR/../common.sh || { echo "Please run the script from the right place" ; exit 1 ; }
+else
+	. $LOCAL_DIR/bitbake.env || { echo "Please make sure you have the right set of files to run this from bitbake" ; exit 1 ; }
+fi
+
+set -euo pipefail
 
 # Allow getting the kernel and initramfs from other places (can do that for GRUB as well, but then will need to sign it externally)
 : ${KERNEL_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/bzImage}
 : ${INITRAMFS_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/initrd.img}
+: ${GRUB_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/grubx64.efi}
+: ${GRUB_CONFIG_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/grub.cfg}
 : ${TARGET_KERNEL_NAME=bzImage}
 : ${TARGET_INITRAMFS_NAME=initrd.img}
+: ${KEYS_DIR=$ARTIFACTS_DIR/keys}
+# The next two are not relevant here
+: ${ROOTFS_IMG_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/rootfs.img}
+: ${ROOTFS_VERITY_HASH_ARTIFACT=$REQUIRED_PROJECTS_ARTIFACTS_DIR/rootfs.verityhash.img}
+# 
+: ${TARGET_GRUB_NAME=bootx64.efi}
+: ${TARGET_GRUB_CONFIG_NAME=grub.cfg}
+
+
 
 init_folders() {
 	echo "[+] Populating ESP materials folder"  
@@ -26,11 +43,24 @@ init_folders() {
 	fi
 }
 
-update_kernel_and_initramfs() {
+copy_kernel_and_initramfs() {
 	echo "[+] Adding kernel and initramfs to $BOOT_FS_FOLDER"
 	mkdir -p $BOOT_FS_FOLDER
 	cp ${KERNEL_ARTIFACT} ${BOOT_FS_FOLDER}/${TARGET_KERNEL_NAME}
 	cp ${INITRAMFS_ARTIFACT} $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
+}
+
+copy_grub() {
+	echo "[+] Copying the GRUB image to the artifacts dir and to the target $ESP_FS_FOLDER/EFI/Boot/"
+	# Note: in general, if full A/B update is required, there will be more folders naturally, and one can find themselves putting the boot materials, and the GRUB config in another (e.g. ext4) partition. One can extend this functionality to sign GRUB modules, fonts, etc. For now there will be support only for a separate config file, and it will be 
+	# copied to the same place the GRUB EFI is copied to (doesn't have to be like this). One could go and have that file load other files from other partitions etc., which could be useful
+	# for "playing" if secure boot is not enabled, or if they are signed
+	if [ "$GRUB_BUILD_STANDALONE" = "false" -a "$GRUB_COPY_FILES_TO_TARGET" = "true" ] ; then
+		echo "Also copying grub.cfg"
+		cp $GRUB_CONFIG_ARTIFACT $ARTIFACTS_DIR # just for consistency, and to have everything nicely place in the directory. We don't really need it there
+		cp $GRUB_CONFIG_ARTIFACT $ESP_FS_FOLDER/EFI/Boot/grub.cfg
+	fi
+	cp $GRUB_ARTIFACT $ARTIFACTS_DIR/grubx64.efi
 }
 
 update_grub() {
@@ -47,15 +77,6 @@ update_grub() {
 
 	. $LOCAL_DIR/../external-projects/build-grub.sh build_grub_efi
 	. $LOCAL_DIR/../external-projects/build-grub.sh copy_artifacts
-
-	# Note: in general, if full A/B update is required, there will be more folders naturally, and one can find themselves putting the boot materials, and the GRUB config in another (e.g. ext4) partition. One can extend this functionality to sign GRUB modules, fonts, etc. For now there will be support only for a separate config file, and it will be 
-	# copied to the same place the GRUB EFI is copied to (doesn't have to be like this). One could go and have that file load other files from other partitions etc., which could be useful
-	# for "playing" if secure boot is not enabled, or if they are signed
-	if [ "$GRUB_BUILD_STANDALONE" = "false" -a "$GRUB_COPY_FILES_TO_TARGET" = "true" ] ; then
-		echo "Also copying grub.cfg"
-		cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/grub.cfg $ESP_FS_FOLDER/EFI/Boot/grub.cfg
-	fi
-	cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/grubx64.efi $ARTIFACTS_DIR/grubx64.efi
 }
 
 
@@ -92,13 +113,13 @@ sign_efi_loaded_elements() {
 	if [ "$SECURE_BOOT" = "true" ] ; then 
 		echo "[+] Adding signed GRUB to the ESP materials"
 		# sbsign is from the sbsigntool . Install it if needed
-		sbsign --key $ARTIFACTS_DIR/keys/db.key --cert $ARTIFACTS_DIR/keys/db.crt \
+		sbsign --key $KEYS_DIR/db.key --cert $KEYS_DIR/db.crt \
 			--output $ARTIFACTS_DIR/grubx64.efi.signed $ARTIFACTS_DIR/grubx64.efi
 		cp $ARTIFACTS_DIR/grubx64.efi.signed $ESP_FS_FOLDER/EFI/Boot/bootx64.efi 
 
 		echo "[+] Signing the Linux kernel with the EFI key, since GRUB also uses the firmware to verify (the executable, which is only the Linux kernel) if secure boot is loaded"
 		# Since GRUB uses the firmware to verify, this is required
-		sbsign --key $ARTIFACTS_DIR/keys/db.key --cert $ARTIFACTS_DIR/keys/db.crt \
+		sbsign --key $KEYS_DIR/db.key --cert $KEYS_DIR/db.crt \
 			--output $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}.signed $BOOT_FS_FOLDER/${TARGET_KERNEL_NAME}
 	else
 		echo "[+] Adding unsigned GRUB to the ESP materials"
@@ -111,7 +132,7 @@ sign_boot_elements() {
 	sign_grub_loaded_elements
 }
 
-update_ovmf() {
+copy_ovmf() {
 	echo "[+] Updating OVFM_CODE.fd"
 	cp $REQUIRED_PROJECTS_ARTIFACTS_DIR/OVMF_CODE.fd $ARTIFACTS_DIR
 
@@ -126,10 +147,12 @@ update_ovmf() {
 
 main() {
 	init_folders			# Set the work folders where the ESP will be populated and the EFI apps will reside, and where the Linux materials will reside
-	update_ovmf			# Copy over the already built OVMF code, and the OVMF vars if need be (if it is the first time. You would usally want to keep the vars state)
-	update_kernel_and_initramfs	# Copy over the already built kernel and initramfs
+	[ -z "$DONTSOURCECOMMONENV" ] && copy_ovmf			# Copy over the already built OVMF code, and the OVMF vars if need be (if it is the first time. You would usally want to keep the vars state)
+	copy_kernel_and_initramfs	# Copy over the already built kernel and initramfs
 
-	update_grub			# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
+	[ -z "$DONTSOURCECOMMONENV" ]  && update_grub			# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
+	copy_grub			# Separating copying from updating, to allow copying a config file where it is separate and rebuilding GRUB is not necessary
+	
 	sign_boot_elements		# This signs everything that needs to be signed
 	echo -e "\x1b[32mDONE\x1b[0m"
 	echo ""
