@@ -19,45 +19,53 @@ if [ ! "$ROOTFS_DECRYPTED_IMG" = "/dev/mapper/${LUKS_MAPPER_NAME}" ] ; then
 	export LUKS_DONT_FSCK_TARGET_FS=true
 fi
 
-echo "[+] Creating the rootfs image"
-if [ -f $ROOTFS_IMG ] ; then
-	echo "WARNING: rootfs.img existed. Would you like to remove it? [y/n/^C]"
-	read
-	case $REPLY in
-		y|Y)
-			rm $ROOTFS_IMG
-			;;
-		""|n)
-			# maybe make the default remove it instead
-			echo "Keeping the current rootfs image"
-			;;
-		*)
-			exit 1
-			;;
-	esac	
+: ${DONT_RECREATE_ROOTFS=false}
+if [ ! "$DONT_RECREATE_ROOTFS" = "true" ] ; then
+	echo "[+] Creating the rootfs image"
+	if [ -f $ROOTFS_IMG ] ; then
+		echo "WARNING: rootfs.img existed. Would you like to remove it? [y/n/^C]"
+		read
+		case $REPLY in
+			y|Y)
+				rm $ROOTFS_IMG
+				;;
+			""|n)
+				echo "Keeping the current rootfs image - be sure you know what you are doing"
+				;;
+			*)
+				exit 1
+				;;
+		esac	
+	fi
+
+
+
+	ROOTFS_SIZE_MIB=$(echo "$(( ($(sudo du -sb $ROOTFS_FS_FOLDER  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc) # size of the current folder +40% for metadata and some extra working space
+	ROOTFS_MOUNT=$ARTIFACTS_DIR/rootfs.mount
+	fallocate -l ${ROOTFS_SIZE_MIB}MiB $ROOTFS_IMG
+	# would be better to check for existence, in previous scripts etc., but if something doesn't check out it's easy to trace to that, and unmount/losetup -d etc. manually and I simply don't have the time for that now
+	mkdir $ROOTFS_MOUNT
+	LOOPDEV=$(losetup -f)
+	sudo losetup -Pf $ROOTFS_IMG
+	sudo mkfs.ext4 $LOOPDEV
+	sudo mount $LOOPDEV $ROOTFS_MOUNT
+	sudo cp -a $ROOTFS_FS_FOLDER/* $ROOTFS_MOUNT
+	# maybe also copy ./... but in our debootstrap for now there won't be any under the root filesystem so it's simpler to follow
+
+	sudo umount $ROOTFS_MOUNT
+	sudo e2fsck -f $LOOPDEV
+	sudo resize2fs $LOOPDEV
+	sudo losetup -d $LOOPDEV
+	rmdir $ROOTFS_MOUNT
+	sync
+
+	echo "OK"
+else
+	ROOTFS_SIZE_MIB=$(echo "$(( ($(sudo du -sb $ROOTFS_IMG  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc)
+	echo "Using $ROOTFS_IMG. Size: $ROOTFS_SIZE_MIB MiB"
 fi
 
-ROOTFS_SIZE_MIB=$(echo "$(( ($(sudo du -sb $ROOTFS_FS_FOLDER  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc) # size of the current folder +40% for metadata and some extra working space
-ROOTFS_MOUNT=$ARTIFACTS_DIR/rootfs.mount
-fallocate -l ${ROOTFS_SIZE_MIB}MiB $ROOTFS_IMG
-# would be better to check for existence, in previous scripts etc., but if something doesn't check out it's easy to trace to that, and unmount/losetup -d etc. manually and I simply don't have the time for that now
-mkdir $ROOTFS_MOUNT
-LOOPDEV=$(losetup -f)
-sudo losetup -Pf $ROOTFS_IMG
-sudo mkfs.ext4 $LOOPDEV
-sudo mount $LOOPDEV $ROOTFS_MOUNT
-sudo cp -a $ROOTFS_FS_FOLDER/* $ROOTFS_MOUNT
-# maybe also copy ./... but in our debootstrap for now there won't be any under the root filesystem so it's simpler to follow
-
-sudo umount $ROOTFS_MOUNT
-sudo e2fsck -f $LOOPDEV
-sudo resize2fs $LOOPDEV
-sudo losetup -d $LOOPDEV
-rmdir $ROOTFS_MOUNT
-sync
-
-echo "OK"
-
+export ROOTFS_IMG
 export LUKS_MAPPER_NAME ROOTFS_ENC_IMG
 export ROOTFS_DECRYPTED_IMG
 
