@@ -60,7 +60,7 @@ cp $CP_SRC_KERNEL $T1/kernel
 cp $CP_SRC_INITRAMFS $T1/initramfs
 
 echo "Temporarily copying some other things over (the initramfs was built inside yocto, using docker)"
-CP_SRC_KERNEL=/home/ron/pscg/secureboot-qemu-x86_64-efi-grub/components/artifacts/bzImage
+#CP_SRC_KERNEL=/home/ron/pscg/secureboot-qemu-x86_64-efi-grub/components/artifacts/bzImage
 CP_SRC_INITRAMFS=${DEPLOY_DIR_IMAGE}/initrd.img
 cp $CP_SRC_KERNEL $T1/kernel
 cp $CP_SRC_INITRAMFS $T1/initramfs
