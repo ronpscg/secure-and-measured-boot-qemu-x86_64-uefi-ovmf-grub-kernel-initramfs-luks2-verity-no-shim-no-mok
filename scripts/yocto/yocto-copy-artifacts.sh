@@ -1,11 +1,11 @@
 #!/bin/bash
 # dev script to wrap some stuff
 set -euo pipefail
-: ${COPY_ROOTFS_=true}
+
 LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 SCRIPTS_DIR=$(readlink -f $LOCAL_DIR/..)
 export COMMON_CONFIG_FILE
-: ${COMMON_CONFIG_FILE:=$LOCAL_DIR/../scripts/main/bitbake.env}
+: ${COMMON_CONFIG_FILE:=$LOCAL_DIR/bitbake.env}
 
 # Could run bitbake -e and get some environment variables, but I won't do that
 : ${YOCTO_BUILD_DIR=$HOME/yocto/build-scarthgap-x86_64}
@@ -13,9 +13,12 @@ export COMMON_CONFIG_FILE
 : ${IMAGE_BASENAME=signing-wip}
 
 
+
 TOPDIR=${YOCTO_BUILD_DIR}
 DEPLOY_DIR=${TOPDIR}/tmp/deploy
 DEPLOY_DIR_IMAGE=${DEPLOY_DIR}/images/${MACHINE}
+SECURE_ARTIFACTS_BASE_SYMLINK="${DEPLOY_DIR_IMAGE}/secure-boot-work"
+export SECURE_ARTIFACTS_BASE_SYMLINK # not sure the exporting is needed, we'll see as I port on
 
 # This is the rootfs unpacked. We can use it to pack it ourselves, as a rootfs step for the images we would like to create
 : ${IMAGE_ROOTFS="${TOPDIR}/tmp/work/genericx86_64-poky-linux/${IMAGE_BASENAME}/1.0/rootfs"}
@@ -56,7 +59,14 @@ CP_SRC_GRUB=${DEPLOY_DIR_IMAGE}/${GRUB_IMAGE}
 cp $CP_SRC_KERNEL $T1/kernel
 cp $CP_SRC_INITRAMFS $T1/initramfs
 
+echo "Temporarily copying some other things over (the initramfs was built inside yocto, using docker)"
+CP_SRC_KERNEL=/home/ron/pscg/secureboot-qemu-x86_64-efi-grub/components/artifacts/bzImage
+CP_SRC_INITRAMFS=${DEPLOY_DIR_IMAGE}/initrd.img
+cp $CP_SRC_KERNEL $T1/kernel
+cp $CP_SRC_INITRAMFS $T1/initramfs
 
+
+: ${COPY_ROOTFS_=false}
 #
 # Note: if you are using the rootfs from yocto - it could very likely be under fakeroot - and it will not boot
 # 
@@ -109,7 +119,7 @@ echo
 
 echo "Not doing the rest"
 
-export GRUB_CONFIGS="/home/ron/secboot-ovmf-x86_64/yocto-required-artifacts/grub-templated.cfg"
+export GRUB_CONFIGS="${LOCAL_DIR}/grub-templated.cfg"
 #. $SCRIPTS_DIR/common.sh
 export GRUB_DEFAULT_ENTRY=0
 #cd $SCRIPTS_DIR/external-projects/
@@ -122,27 +132,5 @@ export DONT_RECREATE_ROOTFS=true
 ./make-images-rootfs.sh
 #fi
  
-if false  ; then
-	cp -v ~/pscg/secureboot-qemu-x86_64-efi-grub/components/artifacts/initrd.img $BOOT_FS_FOLDER/initrd-dracut.img
-        gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/initrd-dracut.img
-	cp -v ~/pscg/secureboot-qemu-x86_64-efi-grub/components/artifacts/bzImage $BOOT_FS_FOLDER/bzImage-local
-	sbsign --key $KEYS_DIR/db.key --cert $KEYS_DIR/db.crt --output $BOOT_FS_FOLDER/bzImage-local.signed $BOOT_FS_FOLDER/bzImage-local
-        gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage-local # Allow GRUB verification also without EFI secure boot
-        gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage-local.signed
-	echo -e "This is a hack and the BOOT_FS_FOLDER is modified in the other script so don't forget to \e[33m\ncp BOOT.fs/initrd-dracut.img* BOOT.fs/bzImage-local* ESP.fs/boot/\e[0m"
-else
-	# initramfs from docker inside yocto build
-	echo "Copying from the deploy dir"
-	INITRAMFS_FILENAME=initramfs-dracut-in-docker.initrd.img
-	cp -v ${DEPLOY_DIR_IMAGE}/$INITRAMFS_FILENAME $BOOT_FS_FOLDER/initrd-dracut.img
-        gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/initrd-dracut.img
-	cp -v ~/pscg/secureboot-qemu-x86_64-efi-grub/components/artifacts/bzImage $BOOT_FS_FOLDER/bzImage-local
-	sbsign --key $KEYS_DIR/db.key --cert $KEYS_DIR/db.crt --output $BOOT_FS_FOLDER/bzImage-local.signed $BOOT_FS_FOLDER/bzImage-local
-        gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage-local # Allow GRUB verification also without EFI secure boot
-        gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/bzImage-local.signed
-	echo -e "This is a hack and the BOOT_FS_FOLDER is modified in the other script so don't forget to \e[33m\ncp BOOT.fs/initrd-dracut.img* BOOT.fs/bzImage-local* ESP.fs/boot/\e[0m"
-fi
-
-
 ./make-images-boot-materials.sh
 ./make-combined-gpt-disk-image.sh
