@@ -64,12 +64,12 @@ copy_grub() {
 	cp $GRUB_ARTIFACT $ARTIFACTS_DIR/grubx64.efi
 }
 
-update_grub() {
-        if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB" = "true" ] ; then
+
+update_grub_config() {
+        if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB_CONFIG" = "true" ] ; then
                 return
         fi
 
-	echo "[+] Creating the GRUB image to include in your target"
 	if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
 		echo "[+] Sourcing $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE and updating $GRUB_CONFIG accordingly"
 		( 
@@ -79,11 +79,16 @@ update_grub() {
 		set +a
 		)       
 	fi
+}
+update_grub() {
+        if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB" = "true" ] ; then
+                return
+        fi
 
+	echo "[+] Creating the GRUB image to include in your target"
 	. $LOCAL_DIR/../external-projects/build-grub.sh build_grub_efi
 	. $LOCAL_DIR/../external-projects/build-grub.sh copy_artifacts
 }
-
 
 #
 # GRUB has its own way to use signatures, if the SHIM is not involved.
@@ -166,6 +171,7 @@ main() {
 	copy_ovmf			# Copy over the already built OVMF code, and the OVMF vars if need be (if it is the first time. You would usally want to keep the vars state)
 	copy_kernel_and_initramfs	# Copy over the already built kernel and initramfs
 
+	update_grub_config		# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
 	update_grub			# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
 	copy_grub			# Separating copying from updating, to allow copying a config file where it is separate and rebuilding GRUB is not necessary
 	
