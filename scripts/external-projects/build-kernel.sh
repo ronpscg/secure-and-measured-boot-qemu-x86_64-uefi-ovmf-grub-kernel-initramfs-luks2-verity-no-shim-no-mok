@@ -3,8 +3,15 @@ set -euo pipefail
 
 setup() (
 	cd $REQUIRED_PROJECTS_DIR
-	wget https://git.kernel.org/torvalds/t/linux-$KV.tar.gz  # note: the suffix will change if it's an rc... but it will fail and it will be easy for you to go to kernel.org and figure it out in a jiffie
-	tar xf linux-$KV.tar.gz
+	if [[ "$KV" = *"rc"* ]] ; then
+		suffix=.tar.gz
+		wget https://git.kernel.org/torvalds/t/linux-$KV.tar.gz 
+	else
+		suffix=.tar.xz # assuming the kernel is not very outdated
+		series="v$(echo $KV | cut -b1).x"
+		wget https://cdn.kernel.org/pub/linux/kernel/$series/linux-$KV.tar.xz
+	fi
+	tar xf linux-${KV}${suffix}
 )
 
 build() (
