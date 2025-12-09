@@ -83,7 +83,7 @@ fi
 # PscgBuildOS and some of my other work organizes things more nicely and ALWAYS separates the source from the build directory. Since here everything was hacked brutally quickly,
 # I am presenting the in folder way. Which is fine, as it is easier for most people either way
 
-: ${KV=6.18-rc7}
+: ${KV=6.18}
 KERNEL_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/linux-$KV
 : ${KERNEL_CONFIG=$BUILD_TOP/kernel-configs/config-x86_64_tpm-dmcrypt-dmverity}
 
