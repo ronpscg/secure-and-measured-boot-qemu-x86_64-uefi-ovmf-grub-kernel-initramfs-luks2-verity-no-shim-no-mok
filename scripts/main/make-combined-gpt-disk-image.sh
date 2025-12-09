@@ -12,12 +12,6 @@ LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 
 OUTPUT_IMG=$GPT_COMBINED_DISK_IMG
 
-if ! grep ",gpt" $GRUB_CONFIG ; then
-	echo -e "\x1b[33mWARNING\x1b[0m - your $GRUB_CONFIG does not refer to GPT partitions at all. you may want to edit your config flie and rebuild GRUB (unless you have done that manually. Would you like to proceed anyway [y/n]?"
-	read
-	case $REPLY in 'y'|'Y'|'YES'|'yes'|'Yes') ;; *) exit 1 ;; esac
-fi
-
 echo -e "\x1b[42mWelding  $ESP_FS_FOLDER $ROOTFS_ENC_IMG $DMVERITY_ROOTFS_HASH_IMG ---> \x1b[31m$OUTPUT_IMG\x1b[0m"
 
 # Sizes in MiB (M in dd means MiB, not MB)
@@ -53,10 +47,28 @@ START_HASH=${END_ROOT}
 END_HASH=$((START_HASH + HASH_SIZE_MIB))
 parted -s "$OUTPUT_IMG" mkpart DMVERITY_HASH ext4 ${START_HASH}MiB ${END_HASH}MiB
 
-echo "[+] Setting up a work phase loop device and mapping the image..."
-LOOP_DEV=$(sudo losetup -P --show -f "$OUTPUT_IMG")
-echo "    Mapped to $LOOP_DEV"
+# Handle systemd-less/udveless containers (especially if they are privileged [not that they should be, but remembering which CAP are required for what is harder ;-) ])
+setup_loopdev() {
+	LOOP_DEV=$(sudo losetup -P --show -f "$OUTPUT_IMG")
+	echo "    Mapped to $LOOP_DEV"
 
+	# Inside docker (unless run with systemd), do a manual step to probe the partitions
+	# It will happen if you see something like "systemd-udevd is not running." from parted above
+	if ! pgrep systemd-udevd ; then
+		_LOOP_DEV=${LOOP_DEV}
+		sudo kpartx -a ${LOOP_DEV}
+		LOOP_DEV=/dev/mapper/$(basename $LOOP_DEV)
+	fi
+
+}
+teardown_loopdev() {
+	if [[ "$LOOP_DEV" =~ /dev/mapper ]] ; then
+		sudo kpartx -d $_LOOP_DEV
+	fi
+	sudo losetup -d "$_LOOP_DEV"
+}
+echo "[+] Setting up a work phase loop device and mapping the image..."
+setup_loopdev
 # Define partition devices (handling loop device naming like /dev/loop0p1)
 P1="${LOOP_DEV}p1"
 P2="${LOOP_DEV}p2"
@@ -83,6 +95,5 @@ sudo blkid ${LOOP_DEV}*
 echo ""
 
 echo "[+] Cleaning up..."
-sudo losetup -d "$LOOP_DEV"
-
+teardown_loopdev
 echo -e "\x1b[32mDONE.\x1b[0m $OUTPUT_IMG created. You can refer to it from your favorite UEFI firmware, and enjoy."
