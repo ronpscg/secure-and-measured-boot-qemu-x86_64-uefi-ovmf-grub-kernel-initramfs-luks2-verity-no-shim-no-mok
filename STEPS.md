@@ -17,8 +17,42 @@ Then - make the combined image - make a disk with GPT partitions
 ### What to run where (I'll make a docker for that later, this way I will also present more clearly the host depednencies (other than qemu-system-x86_64)
 
 To build the system, you would like to follow the contents of the next sections, in the order they are listed.
+You can also build the system with Docker.
+
+#### Building with docker
+```
+cd docker
+./build-docker.sh
+./run-docker.sh
+```
+
+The latter will give you instructions, on docker.
+For example, on the **very** first run, you would like to run:
+```
+/setup/build.sh -c -k -b -p  # Clone repos, create Keys, Build everything, Package build
+```
+
+You can then run the result with QEMU:
+```
+/setup/build.sh q
+```
+
+You can see the current status and issues, if there are any, in
+```
+cat docker/bindmounts/setup/README.indocker.md
+```
+
+The build has been verified to work well, and one needs to be careful about the console parameters, as having console=tty0 as the last console argument, will give you
+the illusion that it is not working, and it's hard to troubleshoot these things, which are not even a problem.
+Therefore, multiple configs have been added as a reference in the *grub-configs* folder.
+
+For running inside QEMU do note that we deliberately did not provide graphical packages (to save space), so note that if you are expecting a display.
+It is not a big deal to add that, and Ron Munitz (not talking about myself in third party body, but I always say we... so...) added quite a lot of videos in his youtube channel on Wayland and graphics in QEMU and in general, so you can look at those (they are around what was titled "Meetup #17"
+
+Do note that the initramfs created by Ubuntu and by Fedora are not the same, but the Ubuntu initramfs also seems to work. Also, building dracut from source has been tested to work (but you want to remove the dependency in asciidoc there as it is huge, or at least install it with --no-install-recommends .
 
 #### Install packages on your host
+**You are welcome to observe the pacakges installed in *docker/Dockerfile*.**
 At the time of writing the following packages need to be installed (assuming a Debian host, assming you have can run apt-get (with or without `sudo`)).
 ```
 apt-get install build-essential git vim nasm iasl efitools  autoconf autopoint  bison flex libelf-dev libssl-dev debootstrap swtpm
