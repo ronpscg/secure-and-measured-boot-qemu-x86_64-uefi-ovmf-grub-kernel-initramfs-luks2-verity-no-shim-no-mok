@@ -97,9 +97,11 @@ export GRUB_CONFIG #TEMPORARY TODO FIND OUT WHY IN THE YOCTO HACK STUFF IT DOESN
 # This is a list of one or more template configuration files to make a configuration from. The default value is just an example, modify them as you please in your local.config file
 : ${GRUB_CONFIGS="\
 	$BUILD_TOP/grub-configs/grub-basic-defs.cfg \
-	$BUILD_TOP/grub-configs/grub-gpt-luks-dmverity-entries.cfg \
+	$BUILD_TOP/grub-configs/grub-common-luks-dmverity-boot-functions.cfg \
+	$BUILD_TOP/grub-configs/grub-luks-dmverity-entries.cfg \
 	$BUILD_TOP/grub-configs/grub-fwsetup-between-separators.cfg \
-	$BUILD_TOP/grub-configs/grub-msdos-luks-dmverity-entries.cfg \
+	$BUILD_TOP/grub-configs/grub-rescue-mode-entries.cfg
+
 "}
 
  : ${GRUB_CONFIGS=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
