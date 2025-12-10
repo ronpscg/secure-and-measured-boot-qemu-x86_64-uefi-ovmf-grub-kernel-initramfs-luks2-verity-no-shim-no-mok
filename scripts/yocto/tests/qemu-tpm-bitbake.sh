@@ -19,9 +19,13 @@ SECURE_ARTIFACTS_BASE_SYMLINK="${DEPLOY_DIR_IMAGE}/secure-boot-work"
 #--------------------------------------------------------------------------------
 ARTIFACTS_DIR=$SECURE_ARTIFACTS_BASE_SYMLINK/artifacts
 DIR=$ARTIFACTS_DIR
-export OVMF_CODE=$LOCAL_DIR/OVMF-local/OVMF_CODE.fd
-export OVMF_VARS=$LOCAL_DIR/OVMF-local/OVMF_VARS.fd
-export TPM_STATE_DIR=${LOCAL_DIR}/OVMF-local/tpm-state
+: ${OVMF_DIR=$(readlink -f $LOCAL_DIR/../../../OVMF-local)}
+export OVMF_DIR
+export OVMF_CODE=$OVMF_DIR/OVMF_CODE.fd
+export OVMF_VARS=$OVMF_DIR/OVMF_VARS.fd
+: ${TPM_STATE_DIR=$OVMF_DIR/tpm-state}
+export TPM_STATE_DIR
+SWTPM_SCRIPT=$LOCAL_DIR/../../qemu/swtpm-start.sh
 
 
 : ${ESP_FS_FOLDER=$ARTIFACTS_DIR/ESP.fs}
@@ -39,11 +43,6 @@ export DMVERITY_HASH_IMG=${DIR}/dmverity-hash.img
 
 export GPT_COMBINED_DISK_IMG=$DIR/usb_image.hdd.img
 
-: ${TPM_STATE_DIR=$PWD/tpm-state}
-export TPM_STATE_DIR
-
-#cd $(dirname ${BASH_SOURCE[0]})
-../../qemu/swtpm-start.sh || exit 1
 
 dont_do_disk() {
 set -u # will fail any unset variables, so less code on checking the user called this script properly
@@ -90,12 +89,46 @@ do_disk()  {
 		$@
 }
 
+check_ovmf_exists() {
+	for ent in $OVMF_DIR $OVMF_CODE $OVMF_VARS ; do
+		if [ ! -e $ent ] ; then
+			error=true;
+			echo -e "\e[31m$ent does not exist\e[0m"
+		fi
+	done
+	if [ "$error" = "true" ] ; then
+		recdir=/tmp/OVMF_dir_tmp/OVMF-local/
+		echo "You don't have the OVMF materials. You can get an example, for example, from
+		git clone https://github.com/ronpscg/example-test-secboot-qemu.git $recdir"
+		echo "Then you can run
+		OVMF_DIR=$recdir $0"
 
-if [ ! "$1" = "disk" ] ; then
-	#dont_do_disk
-	#dont_do_disk $@ #./tpm-run-qemu.sh		# Run this for image separation (could also actually provide the rootfs like this for an unencrypted/unverified case...
-	dont_do_disk_encrypted $@ #./tpm-run-qemu.sh		# Run this for image separation (could also actually provide the rootfs like this for an unencrypted/unverified case...
-else
-	shift
-	do_disk $@ #./tpm-run-qemu-disk.sh		# Run this to run the entire disk image, as it would be present on a real hardware
-fi
+		exit 1
+	fi
+}
+
+run_swtpm() {
+	$SWTPM_SCRIPT || exit 1
+}
+
+main() {
+	check_ovmf_exists
+	if [ ! -e "$DIR" ] ; then
+		echo -e "\e[31m${DIR} does not exist.\e[0m"
+		echo "Please make sure it exists / set YOCTO_BUILD_DIR to the right path and make sure you have the correct materials there."
+		exit 1
+	fi
+		
+	run_swtpm
+
+	if [ ! "$1" = "disk" ] ; then
+		#dont_do_disk
+		#dont_do_disk $@ #./tpm-run-qemu.sh		# Run this for image separation (could also actually provide the rootfs like this for an unencrypted/unverified case...
+		dont_do_disk_encrypted $@ #./tpm-run-qemu.sh		# Run this for image separation (could also actually provide the rootfs like this for an unencrypted/unverified case...
+	else
+		shift
+		do_disk $@ #./tpm-run-qemu-disk.sh		# Run this to run the entire disk image, as it would be present on a real hardware
+	fi
+}
+
+main $@
