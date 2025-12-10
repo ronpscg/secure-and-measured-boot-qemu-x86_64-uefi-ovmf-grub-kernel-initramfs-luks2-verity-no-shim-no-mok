@@ -1,0 +1,13 @@
+FROM wip-docker-secboot-builder
+
+# Running with sudo instead of modifying the user back and forth. It's fine
+RUN sudo apt-get install -y kas
+RUN sudo apt-get install -y locales chrpath diffstat lz4 && sudo locale-gen "en_US.UTF-8"
+
+# Make kas shell a bit better looking
+RUN sudo bash -c "rm /bin/sh && ln -s /bin/bash /bin/sh"
+
+# Run the entry point as it is useful and may prevent some known docker issues (loopbacks et. al). Can't use variables, but it's fine because we have the WORKDIR that handles it
+ENTRYPOINT  ["./entry.sh"]
+# You can replace moving to shell with your other command if you wish. The entry point will take care of exec-ing it
+CMD  ["/bin/bash"]
