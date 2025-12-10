@@ -34,6 +34,10 @@ package_images() {
 	$SCRIPTS_DIR/main/make-images.sh all
 }
 
+build_yocto() {
+	$SCRIPTS_DIR/yocto/build-yocto.sh
+}
+
 run_qemu_on_default_build() {
 	echo "Running QEMU without graphics to not exahust your docker setup/storage with graphic packages"
 	$SCRIPTS_DIR/qemu/test-tmp.sh disk -nographic
@@ -46,7 +50,7 @@ usage() {
 }
 
 main() {
-	while getopts "kcbhpq" opt ; do
+	while getopts "kcbhpqy" opt ; do
 		case $opt in
 			k)
 				SETUP_KEYS=true
@@ -66,7 +70,7 @@ main() {
 				RUN_QEMU=true
 				;;
 			y)
-				BUILD_YOCTO=true; # maybe prepare for later
+				BUILD_YOCTO=true;
 				;;
 			h)
 				usage 0
@@ -116,10 +120,9 @@ main() {
 	if [ "$PACKAGE_IMAGES" = "true" ] ; then
 		package_images
 	fi
-
+	
 	if [ "$BUILD_YOCTO" = "true" ] ; then
-		echo "Maybe in another time..."
-		exit 0
+		build_yocto
 	fi
 
 	if [ "$RUN_QEMU" = "true" ] ; then
