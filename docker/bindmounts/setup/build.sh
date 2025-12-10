@@ -14,6 +14,8 @@ export COMMON_CONFIG_FILE
 
 clone_repos() {
 	git clone https://github.com/ronpscg/secure-and-measured-boot-qemu-x86_64-uefi-ovmf-grub-kernel-initramfs-luks2-verity-no-shim-no-mok.git -b docker ~/secboot-ovmf-x86_64
+	# There is no real need in this repo - but it can be easier to test like this externally build folders that follow our Yocto Project image conventions, so it is cloned as well
+	git clone https://github.com/ronpscg/example-test-secboot-qemu.git ~/example-test-secboot
 }
 
 setup_keys() {
