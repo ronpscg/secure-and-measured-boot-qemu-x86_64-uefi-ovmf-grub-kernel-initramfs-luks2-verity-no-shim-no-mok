@@ -1,4 +1,8 @@
-FROM ubuntu:25.10
+# Important note: Python/Bitbake/who knows what arre most likely BROKEN on 25.10
+# Hosts tested on: 24.10, 24.04
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Enable adding another user
 ARG USERNAME=user
