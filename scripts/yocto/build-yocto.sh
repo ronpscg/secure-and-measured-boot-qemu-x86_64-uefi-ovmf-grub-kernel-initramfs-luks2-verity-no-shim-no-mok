@@ -51,6 +51,9 @@ main() {
 	if ! check_docker ; then
 		echo "Sorry, this is meant to be run inside Docker only. It can be adjusted very easily, but it makes it easier to use some well known paths as defaults this way."
 		exit 1
+	else
+		echo "Building in docker - will attempt to utilize mirrors from your bind mount dir. You can ignore the BB_HASHSERVE warning you will likely see during the build"
+		YOCTO_KAS_YAML=$YOCTO_KAS_YAML:$YOCTO_KAS_DIR/kas/kas-in-docker.yaml
 	fi
 
 	build_with_kas
