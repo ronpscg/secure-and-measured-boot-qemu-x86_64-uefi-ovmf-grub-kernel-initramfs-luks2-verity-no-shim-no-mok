@@ -6,6 +6,7 @@
 : ${PACKAGE_IMAGES=false}  # might make it default to true though
 : ${BUILD_YOCTO=false} # would not be a part of this script anyway probably
 : ${RUN_QEMU=false}
+: ${ENROLL_AND_RUN_YOCTO_ARTIFACTS=false}
 
 : ${BUILDER_SRC_DIR=$HOME/secboot-ovmf-x86_64}
 : ${SCRIPTS_DIR=$BUILDER_SRC_DIR/scripts}
@@ -14,11 +15,21 @@ export COMMON_CONFIG_FILE
 
 : ${EXAMPLE_TEST_SCRIPTS_DIR=$HOME/example-test-secboot/} # TODO probably consolidate with scripts dir later
 
+: ${KAS_DIR=~/yocto/kasdir}
+
+: ${COMMIT_SECBOOT_OVMF_X86_64=docker}
+: ${COMMIT_EXAMPLE_TEST_SECBOOT=master}
+: ${COMMIT_KAS_YOCTO_SECBOOT=master}
+: ${COMMIT_POKY=scarthgap} # not used anywhere yet, as it's all scarthgap in the kas files at the moment but wouldn't hurt to prepare for other releases
 
 clone_repos() {
-	git clone https://github.com/ronpscg/secure-and-measured-boot-qemu-x86_64-uefi-ovmf-grub-kernel-initramfs-luks2-verity-no-shim-no-mok.git -b docker ~/secboot-ovmf-x86_64
+	set +e	# Allow to fail in case the folder exists
+	git clone https://github.com/ronpscg/secure-and-measured-boot-qemu-x86_64-uefi-ovmf-grub-kernel-initramfs-luks2-verity-no-shim-no-mok.git -b $COMMIT_SECBOOT_OVMF_X86_64 ~/secboot-ovmf-x86_64
+	git clone https://github.com/ronpscg/kas-yocto-secure-and-measuerd-boot-examples.git -b $COMMIT_KAS_YOCTO_SECBOOT ${KAS_DIR}
 	# There is no real need in this repo - but it can be easier to test like this externally build folders that follow our Yocto Project image conventions, so it is cloned as well
-	git clone https://github.com/ronpscg/example-test-secboot-qemu.git ${EXAMPLE_TEST_SCRIPTS_DIR}
+	git clone https://github.com/ronpscg/example-test-secboot-qemu.git -b $COMMIT_EXAMPLE_TEST_SECBOOT ${EXAMPLE_TEST_SCRIPTS_DIR}
+	set -e
+
 }
 
 setup_keys() {
@@ -147,7 +158,6 @@ main() {
 	if  [ "$CLONE_REPOS" = "true" ] ; then
 		clone_repos
 	fi
-	# setup_keys # please run it externally, after you clone the repos
 
 	if [ "$SETUP_KEYS" = "true" ] ; then
 		setup_keys

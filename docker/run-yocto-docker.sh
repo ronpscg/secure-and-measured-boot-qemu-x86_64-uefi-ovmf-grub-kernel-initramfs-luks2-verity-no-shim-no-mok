@@ -54,11 +54,18 @@ if [ -n "$MOREMOUNTS" ] ; then
 		fi
 	done
 fi
+mkdir -p $BINDMOUNTS/homedir/yocto
 #--------- this is temporary, to avoid adding git keys on a disconnected computer ----------
-if [ -d ~/kas-project-src/ -a ! -d $BINDMOUNTS/homedir/yocto/kasdir ] ; then
-       mkdir $BINDMOUNTS/homedir/yocto
-	cp -av ~/kas-project-src/ $BINDMOUNTS/homedir/yocto/kasdir
-fi	
+: ${DO_COPY_KAS_PROJECT_FROM_LOCAL_DIR=false}
+if [ "$DO_COPY_KAS_PROJECT_FROM_LOCAL_DIR" = "true" ] ; then
+	if [ -d ~/kas-project-src/ -a ! -d $BINDMOUNTS/homedir/yocto/kasdir ] ; then
+		cp -av ~/kas-project-src/ $BINDMOUNTS/homedir/yocto/kasdir
+	fi
+else
+	mkdir -p $BINDMOUNTS/homedir/yocto
+	echo "/setup/build.sh -c will clone the requested repo into $BINDMOUNTS/homedir/yocto/kasdir"
+fi
+
 #------------- end of temporary -------------
 
 #-----------------------------------------

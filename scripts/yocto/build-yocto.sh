@@ -10,7 +10,7 @@ COMMON_CONFIG_FILE=$LOCAL_DIR/bitbake.env
 
 # Could run bitbake -e and get some environment variables, but I won't do that
 : ${YOCTO_KAS_DIR=$HOME/yocto/kasdir}
-: ${YOCTO_KAS_YAML=$YOCTO_KAS_DIR/kas-vektor-wip.yaml}
+: ${YOCTO_KAS_YAML=$YOCTO_KAS_DIR/kas/example-intel-tpm.yaml}
 : ${YOCTO_BUILD_DIR=$YOCTO_KAS_DIR/build}
 : ${MACHINE=intel-corei7-64}
 : ${IMAGE_BASENAME=vektor-os-signed}
