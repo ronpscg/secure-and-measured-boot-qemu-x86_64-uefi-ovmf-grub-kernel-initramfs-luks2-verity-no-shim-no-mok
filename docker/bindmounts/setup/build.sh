@@ -12,10 +12,13 @@
 : ${COMMON_CONFIG_FILE=$BUILDER_SRC_DIR/local.config}
 export COMMON_CONFIG_FILE
 
+: ${EXAMPLE_TEST_SCRIPTS_DIR=$HOME/example-test-secboot/} # TODO probably consolidate with scripts dir later
+
+
 clone_repos() {
 	git clone https://github.com/ronpscg/secure-and-measured-boot-qemu-x86_64-uefi-ovmf-grub-kernel-initramfs-luks2-verity-no-shim-no-mok.git -b docker ~/secboot-ovmf-x86_64
 	# There is no real need in this repo - but it can be easier to test like this externally build folders that follow our Yocto Project image conventions, so it is cloned as well
-	git clone https://github.com/ronpscg/example-test-secboot-qemu.git ~/example-test-secboot
+	git clone https://github.com/ronpscg/example-test-secboot-qemu.git ${EXAMPLE_TEST_SCRIPTS_DIR}
 }
 
 setup_keys() {
@@ -43,14 +46,48 @@ run_qemu_on_default_build() {
 	$SCRIPTS_DIR/qemu/test-tmp.sh disk -nographic
 }
 
+run_qemu_on_yocto_build() {
+	# Read carefully and make sure you want things overridden. If your MACHINE and YOCTO_BUILD_DIR are set correctly, you probably do.
+	: ${GENERATE_TEST_LOCAL_CONFIG=true}
+	: ${ENROLL_CRYPTO_MATERIALS_IN_UEFI_VARSTORE=true}
+	: ${MACHINE=intel-corei7-64}
+        : ${YOCTO_BUILD_DIR=~/yocto/kasdir/build}
+	: ${FIRMWARE_ENROLLED_KEYS_DIR=~/pscg/secureboot-qemu-x86_64-efi-grub/artifacts/ESP.fs.folder/keys/}
+
+	cd $EXAMPLE_TEST_SCRIPTS_DIR ||  { echo "Test dir $EXAMPLE_TEST_SCRIPTS_DIR is not cloned" ; exit 1 ; }
+
+	if [ "$GENERATE_TEST_LOCAL_CONFIG" = "true" ] ; then
+		echo "Generating default materials. You may want to change it with your own materials!"
+		echo -e "set -a
+		: \${MACHINE=$MACHINE}
+		: \${YOCTO_BUILD_DIR=$YOCTO_BUILD_DIR}
+		: \${IMAGE_BASENAME=core-image-minimal}
+		: \${FIRMWARE_ENROLLED_KEYS_DIR=$FIRMWARE_ENROLLED_KEYS_DIR}
+		set +a
+		" > local.config
+		sed -i 's/^[[:blank:]]*//' local.config
+	fi
+
+	if [ "$ENROLL_CRYPTO_MATERIALS_IN_UEFI_VARSTORE" = "true" ] ; then
+		echo "Enrolling your cryptographic materials and running QEMU without graphics to not exhaust your docker setup/storage with graphic pacakges"
+		./enroll-ovmf-vars.sh OVMF-local/OVMF_VARS.fd  OVMF-local/OVMF_VARS.fd
+	fi
+
+	echo "Running QEMU." 
+	if [ -f /.dockerenv ] ; then 
+		echo -e "\eIf you are in docker - make sure your last console in your kernel cmdline is \e[33mconsole=ttyS0\e[0m as we will run it in a -nographic mode"
+	fi
+	./test.sh
+}
+
 
 usage() {
-	echo -e "$0 [-c|-k|-b|-p]\n  -c: clone repos\n  -k setup keys\n  -b: build external projects\n  -p: package images\n  q: run QEMU"
+	echo -e "$0 [-c|-k|-b|-p|-q|-y|-r]\n  -c: clone repos\n  -k setup keys\n  -b: build external projects\n  -p: package images\n  -q: run QEMU\n  -y: Build and Package Yocto Project\n  -r: enroll certificates and run Yocto Project artifacts prepared with $0 -y"
 	exit $1
 }
 
 main() {
-	while getopts "kcbhpqy" opt ; do
+	while getopts "kcbhpqyr" opt ; do
 		case $opt in
 			k)
 				SETUP_KEYS=true
@@ -71,6 +108,9 @@ main() {
 				;;
 			y)
 				BUILD_YOCTO=true;
+				;;
+			r)
+				ENROLL_AND_RUN_YOCTO_ARTIFACTS=true;
 				;;
 			h)
 				usage 0
@@ -128,6 +168,11 @@ main() {
 	if [ "$RUN_QEMU" = "true" ] ; then
 		run_qemu_on_default_build # i.e. not on the Yocto one, for that there are the other scripts
 	fi
+
+	if [ "$ENROLL_AND_RUN_YOCTO_ARTIFACTS" = "true" ] ; then
+		run_qemu_on_yocto_build
+	fi
+
 
 }
 

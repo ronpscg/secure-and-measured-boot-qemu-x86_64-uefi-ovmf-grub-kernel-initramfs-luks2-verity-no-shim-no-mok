@@ -1,6 +1,6 @@
 # Important note: Python/Bitbake/who knows what arre most likely BROKEN on 25.10
-# Hosts tested on: 24.10, 24.04
-FROM ubuntu:24.04
+# Tested successfully on ubuntu:24.04, ubuntu,25.04
+FROM ubuntu:25.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -11,13 +11,17 @@ ARG USER_GID=1000
 ARG HOST_DOCKER_ID
 
 RUN apt-get update
-# Linux kernel standard stuff
-RUN apt-get install -y build-essential git vim nasm iasl efitools autoconf autoconf-archive autopoint  bison flex libelf-dev libssl-dev  bc 
+
+# Linux kernel standard stuff (nasm/iasl are not needed for the kernel. efitools - depends, usually you don't need them either. EDK2/OVMF requires all of them)
+RUN apt-get install -y build-essential nasm iasl efitools bison flex libelf-dev libssl-dev  bc 
+# General things that are useful
+RUN apt-get install -y git vim bash-completion 
+# Debootstrap and rootfs tools (if you want to avoid superuser for debootstrapping you can use fakeroot or pseudo)
 RUN apt-get install -y sudo debootstrap
 # Native initramfs generation (without using Docker inside Docker)
 RUN apt-get install -y dracut tpm2-tools
 # EDK2/OVMF
-RUN apt-get install -y uuid-runtime uuid-dev nasm iasl efitools 
+RUN apt-get install -y uuid-runtime uuid-dev nasm iasl efitools python3-virt-firmware
 # Keep GRUB bootstrap and make (gawk) happy
 RUN apt-get install -y gettext libtool pkg-config autoconf autoconf-archive autopoint gawk
 # This step is for seamless integration with the current scripts, and running it within docker in docker. Do be careful of the chmod of the artifacts, all might need to be considered
