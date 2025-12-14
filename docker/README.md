@@ -29,6 +29,8 @@ You can then run the result with
 
 But be mindful of the kernel command line if you are running inside docker - you would not want `console=tty0` to be the last console, as systemd would use it for input and output and the system might seem to be stuck while it is waiting for your password for TPM enrollment - while it is not actually stuck.
 
+Note that you could add `-display curses` to your QEMU parameters, should you really want to have the "graphical" display, with ncurses. However, you should be careful about it, as if you don't have an external QEMU monitor (as in monitor, not display), and you can't boot, you will not be able to exit it without killing QEMU externally (which is of course not a problem)
+
 ### Building and packaging Yocto Project builds:
 ```
 BINDMOUNTS=~/pscg/bindmounts ./run-yocto-docker.sh /setup/build.sh -k -c -y
