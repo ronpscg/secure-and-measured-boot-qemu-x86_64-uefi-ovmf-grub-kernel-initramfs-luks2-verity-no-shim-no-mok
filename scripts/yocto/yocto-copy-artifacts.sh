@@ -136,9 +136,19 @@ md5sum ${KERNEL_ARTIFACT}
 md5sum ${INITRAMFS_ARTIFACT}
 echo
 
-echo "Not doing the rest"
-
 export GRUB_CONFIGS="${LOCAL_DIR}/grub-templated.cfg"
+
+# 
+# Set an automatic value for the innocent people who just want to see this work
+# The less innocent ones would set KERNEL_CMDLINE_CONSOLE explicitly
+#
+if [ -f /.dockerenv ] ; then
+	: ${KERNEL_CMDLINE_CONSOLE=console=tty0 console=ttyS0}
+else
+	: ${KERNEL_CMDLINE_CONSOLE=console=ttS0 console=tty0}
+fi
+export KERNEL_CMDLINE_CONSOLE
+
 #. $SCRIPTS_DIR/common.sh
 export GRUB_DEFAULT_ENTRY=0
 #cd $SCRIPTS_DIR/external-projects/
