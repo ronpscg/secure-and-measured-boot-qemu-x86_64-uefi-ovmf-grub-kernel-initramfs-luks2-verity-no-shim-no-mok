@@ -26,15 +26,14 @@ init_folders() {
 	# don't worry about the case - fat is case insensitive. sticking to the cases you would likely see on any Linux machine
 	mkdir -p $ESP_FS_FOLDER/EFI/Boot
 
-	PUT_BOOT_MATERIALS_IN_ESP_FS=true
-	if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" ] ; then
-		echo "Adding kernel and initramfs to the ESP partition. This is used to have less devices, and make it easier to work and debug when you \"run the folder\""
+	if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
+		echo "Adding kernel and initramfs to the ESP partition. This is used to have less devices or partitions, and make it easier to work and debug when you \"run the folder\""
 		echo "While you could choose ot put your kernel and initramfs (and device trees, and...) on another partition usually, there is no harm in doing it, especially during development or learning"
 
 		echo "Make sure you point GRUB to the (hd,ESP partition)/boot/... for the files"
 	else
-		echo "TODO: create the boot folder later in that case, and add a boot partition probably. The project does not support it now, although it's peanuts"
-		echo "Make sure you point GRUB to the (hd, boot partition) ... for the files"
+		echo "Boot folder will be available for you at $BOOT_FS_FOLDER. It will be created in copy_kernel_and_initramfs()"
+		echo "TODO: Make sure you point GRUB to the (hd, boot partition) ... for the files"
 	fi
 }
 

@@ -54,7 +54,7 @@ fi
 : ${ESP_FS_FOLDER=$ARTIFACTS_DIR/ESP.fs.folder}
 
 : ${PUT_BOOT_MATERIALS_IN_ESP_FS=true}  # Note that this will affect your grub.cfg, so careful with that. 
-if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" ] ; then
+if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
 	BOOT_FS_FOLDER=$ESP_FS_FOLDER/boot
 else
 	: ${BOOT_FS_FOLDER=$ARTIFACTS_DIR/boot.fs.folder}
