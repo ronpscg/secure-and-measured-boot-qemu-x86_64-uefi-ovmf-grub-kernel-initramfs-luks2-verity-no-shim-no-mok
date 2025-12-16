@@ -45,6 +45,7 @@ fi
 
 # A/B is relevant mostly for the imaging and QEMU. We disable it by default, to save in disk space
 : ${CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS=false}
+export CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS
 
 #----------------------------------------------------
 # ESP and boot materials definitions
@@ -56,12 +57,13 @@ fi
 # Artifacts folder to do the actual "running" from
 : ${ESP_FS_FOLDER=$ARTIFACTS_DIR/ESP.fs.folder}
 
-: ${PUT_BOOT_MATERIALS_IN_ESP_FS=true}  # Note that this will affect your grub.cfg, so careful with that. 
+: ${PUT_BOOT_MATERIALS_IN_ESP_FS=false}  # Note that this will affect your grub.cfg, so careful with that. 
 if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
 	BOOT_FS_FOLDER=$ESP_FS_FOLDER/boot
 else
 	: ${BOOT_FS_FOLDER=$ARTIFACTS_DIR/boot.fs.folder}
 fi
+export $PUT_BOOT_MATERIALS_IN_ESP_FS
 
 # Location of keys certificates (PK, KEK, DB, ...) to provision to Firmware Setup menu. 
 # It's easiest to just put them on the ESP partition, but you may want to put them e.g. on an another device and have it accessible only during provisioning.
