@@ -43,6 +43,9 @@ fi
 # Secure boot is relevant for several projects and their interaction
 : ${SECURE_BOOT=true}
 
+# A/B is relevant mostly for the imaging and QEMU. We disable it by default, to save in disk space
+: ${CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS=false}
+
 #----------------------------------------------------
 # ESP and boot materials definitions
 # It is common in the sense that this is where kernel

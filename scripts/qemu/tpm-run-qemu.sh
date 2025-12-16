@@ -16,20 +16,88 @@ set -a
 set +a
 
 cd $(dirname ${BASH_SOURCE[0]})
-./swtpm-start.sh || exit 1
 
-set -u # will fail any unset variables, so less code on checking the user called this script properly
-qemu-system-x86_64 -enable-kvm \
-    -drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
-    -drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
-    -drive if=virtio,format=raw,file=fat:rw:$FAT_ESP_FS_DIR \
-    -drive if=virtio,format=raw,file=$ROOTFS_IMG \
-    -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG \
-    -chardev socket,id=chrtpm,path=$TPM_STATE_DIR/swtpm-sock \
-    -tpmdev emulator,id=tpm0,chardev=chrtpm \
-    -device tpm-tis,tpmdev=tpm0 \
-    -m 4G \
-    -serial mon:stdio \
-    "$@"
+# Use this to add more drives, e.g. to account for the boot materials NOT being in the ESP partition, and to acount for A/B partition cases
+set_a_b_params() {
+	QEMU_DRIVE_PARAMS_P1=" -drive if=virtio,format=raw,file=fat:rw:$FAT_ESP_FS_DIR"
+	if  [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
+		# rootfs partition
+		QEMU_DRIVE_PARAMS_P2=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+		QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
+			echo -e "\e[32mDual partitions - boot materials in ESP\e[0m"
+			# redundant rootfs partition
+			QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+			QEMU_DRIVE_PARAMS_P5=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+		else
+			echo -e "\e[32mBoot materials in ESP, single rootfs partition\e[0m"
+		fi
+	else
+		# boot materials partition
+		QEMU_DRIVE_PARAMS_P2=" -drive if=virtio,format=raw,file=fat:rw:$BOOT_FS_FOLDER"
+		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
+			echo -e "\e[32mDual partitions - boot materials in boot partitions\e[0m"
+			# redundant boot materials partition
+			QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=fat:rw:$BOOT_FS_FOLDER"
+			# rootfs partition
+			QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+			QEMU_DRIVE_PARAMS_P5=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+			# redundant rootfs partition
+			QEMU_DRIVE_PARAMS_P6=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+			QEMU_DRIVE_PARAMS_P7=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+		else
+			echo -e "\e[32mSingle rootfs and boot partitions, boot materials in boot partition\e[0m"
+			# rootfs partition
+			QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+			QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+		fi
+	fi
+}
 
+# For this let's just assume the previous default behavior, with 
+set_a_only_params() {
+	QEMU_DRIVE_PARAMS_P1=" -drive if=virtio,format=raw,file=fat:rw:$FAT_ESP_FS_DIR"
+	if  [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
+		# rootfs partition
+		QEMU_DRIVE_PARAMS_P2=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+		QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+		echo -e "\e[32mBoot materials in ESP, single rootfs partition\e[0m"
+	else
+		# boot materials partition
+		QEMU_DRIVE_PARAMS_P2=" -drive if=virtio,format=raw,file=fat:rw:$BOOT_FS_FOLDER"
+		# rootfs partition
+		QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
+		QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+		echo -e "\e[32mSingle rootfs and boot partitions, boot materials in boot partition\e[0m"
+	fi
+}
+
+#
+# Of course things could be done more elegantly. The entire thing here, or "challenge" is that using two different drives with the same image, will make QEMU unhappy
+# 
+main() {
+	# the separation is to assist in debugging, and to not waste much time on scripting cleverness
+	set_a_only_params
+	#set_a_b_params
+
+	QEMU_DRIVE_PARAMS=$(set | grep '^QEMU_DRIVE_PARAMS_P[0-9][0-9]*=' | cut -d= -f2- | tr -d \')
+
+	echo -e "\e[34mUsing the following QEMU drive parameters: \n$QEMU_DRIVE_PARAMS\e[0m"
+
+	./swtpm-start.sh || exit 1
+
+	set -u # will fail any unset variables, so less code on checking the user called this script properly
+	qemu-system-x86_64 -enable-kvm \
+		-drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
+		-drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
+		$QEMU_DRIVE_PARAMS \
+		-chardev socket,id=chrtpm,path=$TPM_STATE_DIR/swtpm-sock \
+		-tpmdev emulator,id=tpm0,chardev=chrtpm \
+		-device tpm-tis,tpmdev=tpm0 \
+		-m 4G \
+		-serial mon:stdio \
+		"$@"
+}
+
+main $@
 

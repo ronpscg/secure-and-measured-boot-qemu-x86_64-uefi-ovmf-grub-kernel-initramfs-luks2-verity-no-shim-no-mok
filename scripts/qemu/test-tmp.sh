@@ -18,6 +18,15 @@ export TPM_STATE_DIR=${DIR}/tpm-state
 
 export GPT_COMBINED_DISK_IMG=$DIR/usb_image.hdd.img
 
+# If provided by an environmnet variable, pass them on. Otherwise - forget about them
+# TODO: check := / = in common.sh or wherever that's used, as I dont remember exactly what I did, and probably need to make all the exports organized (used set -a)
+export CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS
+export PUT_BOOT_MATERIALS_IN_ESP_FS
+
+echo "Redundant boot/rootfs: $CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS"
+echo "Boot materials in ESP: $PUT_BOOT_MATERIALS_IN_ESP_FS"
+
+
 if [ ! "$1" = "disk" ] ; then
 	./tpm-run-qemu.sh $@		# Run this for image separation (could also actually provide the rootfs like this for an unencrypted/unverified case...
 else
