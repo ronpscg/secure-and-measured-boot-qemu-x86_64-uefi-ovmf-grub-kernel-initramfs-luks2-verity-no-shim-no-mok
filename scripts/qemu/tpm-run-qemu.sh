@@ -17,8 +17,23 @@ set +a
 
 cd $(dirname ${BASH_SOURCE[0]})
 
+#
+# Make a copy of the images that will be dual slots, to keep QEMU happy
+#
+init_b_slots() {
+	ROOTFS_IMG_B=$ROOTFS_IMG.b
+	DMVERITY_HASH_IMG_B=$DMVERITY_HASH_IMG.b
+	BOOT_FS_FOLDER_B=$BOOT_FS_FOLDER.b
+
+	cp $ROOTFS_IMG $ROOTFS_IMG_B
+	cp $DMVERITY_HASH_IMG $DMVERITY_HASH_IMG_B
+	cp -aT $BOOT_FS_FOLDER $BOOT_FS_FOLDER_B
+
+}
+
 # Use this to add more drives, e.g. to account for the boot materials NOT being in the ESP partition, and to acount for A/B partition cases
 set_a_b_params() {
+	init_b_slots
 	QEMU_DRIVE_PARAMS_P1=" -drive if=virtio,format=raw,file=fat:rw:$FAT_ESP_FS_DIR"
 	if  [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
 		# rootfs partition
@@ -27,8 +42,8 @@ set_a_b_params() {
 		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
 			echo -e "\e[32mDual partitions - boot materials in ESP\e[0m"
 			# redundant rootfs partition
-			QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
-			QEMU_DRIVE_PARAMS_P5=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+			QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$ROOTFS_IMG_B"
+			QEMU_DRIVE_PARAMS_P5=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG_B"
 		else
 			echo -e "\e[32mBoot materials in ESP, single rootfs partition\e[0m"
 		fi
@@ -38,13 +53,13 @@ set_a_b_params() {
 		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
 			echo -e "\e[32mDual partitions - boot materials in boot partitions\e[0m"
 			# redundant boot materials partition
-			QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=fat:rw:$BOOT_FS_FOLDER"
+			QEMU_DRIVE_PARAMS_P3=" -drive if=virtio,format=raw,file=fat:rw:$BOOT_FS_FOLDER_B"
 			# rootfs partition
 			QEMU_DRIVE_PARAMS_P4=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
 			QEMU_DRIVE_PARAMS_P5=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
 			# redundant rootfs partition
-			QEMU_DRIVE_PARAMS_P6=" -drive if=virtio,format=raw,file=$ROOTFS_IMG"
-			QEMU_DRIVE_PARAMS_P7=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG"
+			QEMU_DRIVE_PARAMS_P6=" -drive if=virtio,format=raw,file=$ROOTFS_IMG_B"
+			QEMU_DRIVE_PARAMS_P7=" -drive if=virtio,format=raw,file=$DMVERITY_HASH_IMG_B"
 		else
 			echo -e "\e[32mSingle rootfs and boot partitions, boot materials in boot partition\e[0m"
 			# rootfs partition
@@ -77,8 +92,8 @@ set_a_only_params() {
 # 
 main() {
 	# the separation is to assist in debugging, and to not waste much time on scripting cleverness
-	set_a_only_params
-	#set_a_b_params
+	#set_a_only_params
+	set_a_b_params
 
 	QEMU_DRIVE_PARAMS=$(set | grep '^QEMU_DRIVE_PARAMS_P[0-9][0-9]*=' | cut -d= -f2- | tr -d \')
 
