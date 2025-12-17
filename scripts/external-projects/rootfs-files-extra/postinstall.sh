@@ -6,6 +6,6 @@
 
 echo "chroot: executing customization scripts"
 systemctl enable tpm2-provision-luks.service
-systemctl enable data.mount
+systemctl enable mount-host-data.service
 
 echo "chroot: done work"
