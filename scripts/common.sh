@@ -43,8 +43,8 @@ fi
 # Secure boot is relevant for several projects and their interaction
 : ${SECURE_BOOT=true}
 
-# A/B is relevant mostly for the imaging and QEMU. We disable it by default, to save in disk space
-: ${CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS=false}
+# A/B is relevant mostly for the imaging and QEMU. We used to disable it by default, to save in disk space, but recreating it is fine.
+: ${CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS=true}
 export CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS
 
 #----------------------------------------------------
