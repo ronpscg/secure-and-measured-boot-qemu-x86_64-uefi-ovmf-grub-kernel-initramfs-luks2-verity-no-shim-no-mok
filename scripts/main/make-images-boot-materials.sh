@@ -45,6 +45,12 @@ copy_kernel_and_initramfs() {
 	mkdir -p $BOOT_FS_FOLDER
 	cp ${KERNEL_ARTIFACT} ${BOOT_FS_FOLDER}/${TARGET_KERNEL_NAME}
 	cp ${INITRAMFS_ARTIFACT} $BOOT_FS_FOLDER/${TARGET_INITRAMFS_NAME}
+	# The following is an addition that does not hurt security, and can help GRUB in sourcing the file.
+	# TODO: sign it in the same place as the other things, not here
+	if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
+		cp $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ${BOOT_FS_FOLDER}/$(basename $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE)
+		gpg --yes --local-user $GRUB_PGP_EMAIL --detach-sign $BOOT_FS_FOLDER/$(basename $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE)
+        fi
 }
 
 copy_grub() {
