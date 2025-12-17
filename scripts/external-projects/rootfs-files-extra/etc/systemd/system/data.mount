@@ -1,0 +1,14 @@
+[Unit]
+Description=Mount host shared 9p folder if it exists
+# Run after local filesystems are ready
+After=local-fs.target
+
+[Mount]
+What=host-datafs
+Where=/data
+Type=9p
+# Note the nofail - it's super important, to keep the system booting even if this mount point does not exist
+Options=trans=virtio,version=9p2000.L,nofail,rw,msize=262144
+
+[Install]
+WantedBy=basic.target
