@@ -163,7 +163,9 @@ copy_ovmf() {
 	fi
 }
 
-
+make_boot_image_partition() {
+        $LOCAL_DIR/make-images-bootfs.sh
+}
 
 main() {
 	init_folders			# Set the work folders where the ESP will be populated and the EFI apps will reside, and where the Linux materials will reside
@@ -175,9 +177,9 @@ main() {
 	copy_grub			# Separating copying from updating, to allow copying a config file where it is separate and rebuilding GRUB is not necessary
 	
 	sign_boot_elements		# This signs everything that needs to be signed
+
+	make_boot_image_partition	# This hardly takes any time, so do it
 	echo -e "\x1b[32mDONE\x1b[0m"
-	echo ""
-	echo "For the Rootfs please run make-images-rootfs.sh . Then, note the UUIDs , update the GRUB config, and rerun this script"
 }
 
 main $@

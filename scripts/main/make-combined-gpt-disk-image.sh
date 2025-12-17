@@ -203,13 +203,6 @@ set_a_b_partitions() {
 	fi
 }
 
-#
-# This is not done in the boot materials generation, because it is not really needed there, but it would make more sense to make it there
-# 
-make_boot_image_partition() {
-	$LOCAL_DIR/make-images-bootfs.sh
-}
-
 make_data_image_partition() {
 	$LOCAL_DIR/make-images-datafs.sh
 }
@@ -266,8 +259,7 @@ create_gpt_image() {
 }
 
 main() {
-	make_boot_image_partition # This would be better done at the boot-materials script - however it will make it run slower, so I deliberately include it in the only place that cares about it - when we work with GPT and the disk
-	make_data_image_partition # Should also be done separately probably same comment as the above
+	make_data_image_partition
 	#create_gpt_image_simple_a_only_partitions_boot_materials_in_esp
 	create_gpt_image
 	echo "[+] Creating GPT partition table..."
