@@ -65,6 +65,15 @@ else
 fi
 export $PUT_BOOT_MATERIALS_IN_ESP_FS
 
+# An optional data directory, to provide a read/write place, and show 9p usage on the host,
+# or another construct on the target
+# TODO: probably move all of these definitions elsewhere
+: ${DATA_FS_FOLDER=$ARTIFACTS_DIR/data.fs.folder}
+: ${DATAFS_IMG=$ARTIFACTS_DIR/datafs.img}
+: ${DATAFS_IMG_SIZE=""}				# One would specify the desired target size here as it is likely to be created empty 
+: ${DATAFS_DEFAULT_MKFS_PARAMS=""}	        #
+: ${DATAFS_PREPOPULATE_SOURCE_DIR=""}		# one could specify it, and then the DATA_FS_FOLDER will have contents upon creation
+
 # Location of keys certificates (PK, KEK, DB, ...) to provision to Firmware Setup menu. 
 # It's easiest to just put them on the ESP partition, but you may want to put them e.g. on an another device and have it accessible only during provisioning.
 # In fact if you use OVMF firmware setup menu, it's even easier to just put them directly under $ESP_FS_FOLDER as it will save you the "effort" of decending to the folder for finding the keys

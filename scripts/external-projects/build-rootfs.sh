@@ -33,6 +33,8 @@ add_more_customizations() {
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "passwd -d root"  # Allow an extra level of laziness, but do not autologin (it is intentional)
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "echo PscgSecureOS > /etc/hostname"
 
+	sudo mkdir -p $ROOTFS_DEBOOTSTRAP_DIR/data
+
 	sudo cp -a $LOCAL_DIR/rootfs-files-extra/* $ROOTFS_DEBOOTSTRAP_DIR
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR /postinstall.sh
 

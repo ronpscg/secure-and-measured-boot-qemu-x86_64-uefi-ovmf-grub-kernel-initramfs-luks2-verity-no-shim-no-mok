@@ -33,6 +33,8 @@ usage() {
 	echo "usage: $0 <setup|build|copy_artifacts|all>"
 	echo "usage: $0 [edk2|OVMF|grub|kernel|initramfs|ramdisk|initrd|rootfs	<setup|build|copy_artifacts|all>"
 	echo "Please see script for details. e.g. rootfs is only relevant for setup. initramfs is not relevant for build. There might be changes from this usage"
+	echo "Some more usage tips, per scriptt:"
+	echo "usage: $0 rootfs <rebuild|debootstrap|add_more_packages|add_more_customizations>"
 }
 
 all_projects() {

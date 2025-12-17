@@ -87,15 +87,30 @@ set_a_only_params() {
 	fi
 }
 
-#
+add_data_partition() {
+	# We could alternatively create an image file, and use it as another drive.
+	# This will be done in the disks scripts, as this is a wonderful example of host mounts with QEMU, for filesystems that are not fat
+	# Using virtiofsd is better performing, but is far my complex, so lets use 9p. Don't get too crazy about the features you use with 9p. It's powerful, but not all too powerful
+	QEMU_DRIVE_PARAMS_DATA="-fsdev local,id=datafs,path=${DATA_FS_FOLDER},security_model=none \
+				-device virtio-9p-pci,fsdev=datafs,mount_tag=host-datafs"
+
+	if [ ! -d "$DATA_FS_FOLDER" ] ; then
+		mkdir -p $DATA_FS_FOLDER || { echo "Failed to create $DATA_FS_FOLDER" ; exit 1 ; }
+	fi
+
+	# then, on target (assuming /data/ or your desired mountpoint exists):
+	# grep -q host-datafs /sys/bus/virtio/drivers/9pnet_virtio/virtio*/mount_tag && mount -t 9p -o trans=virtio host-datafs /data
+}
+
 # Of course things could be done more elegantly. The entire thing here, or "challenge" is that using two different drives with the same image, will make QEMU unhappy
 # 
 main() {
 	# the separation is to assist in debugging, and to not waste much time on scripting cleverness
 	#set_a_only_params
 	set_a_b_params
-
+	QEMU_DRIVE_PARAMS_DATA=""
 	QEMU_DRIVE_PARAMS=$(set | grep '^QEMU_DRIVE_PARAMS_P[0-9][0-9]*=' | cut -d= -f2- | tr -d \')
+	add_data_partition
 
 	echo -e "\e[34mUsing the following QEMU drive parameters: \n$QEMU_DRIVE_PARAMS\e[0m"
 
@@ -106,6 +121,7 @@ main() {
 		-drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
 		-drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
 		$QEMU_DRIVE_PARAMS \
+		$QEMU_DRIVE_PARAMS_DATA \
 		-chardev socket,id=chrtpm,path=$TPM_STATE_DIR/swtpm-sock \
 		-tpmdev emulator,id=tpm0,chardev=chrtpm \
 		-device tpm-tis,tpmdev=tpm0 \

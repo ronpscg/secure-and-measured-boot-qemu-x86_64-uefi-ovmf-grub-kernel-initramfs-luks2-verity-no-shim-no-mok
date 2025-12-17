@@ -1,0 +1,13 @@
+# May be moved to another place before/after services
+[Unit]
+Description=Mount host shared 9p folder if it exists
+# Run after local filesystems are ready
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c "grep -qs 'host-datafs' /sys/bus/virtio/drivers/9pnet_virtio/virtio*/mount_tag && mount -t 9p -o trans=virtio host-datafs /data || true"
+
+[Install]
+WantedBy=basic.target
