@@ -111,6 +111,12 @@ setup_partition_table() {
 	END_P7=$((START_P7 + HASH_SIZE_MIB))
 	TYPE_P7=ext4
 	parted -s "$OUTPUT_IMG" mkpart DMVERITY_HASH_B ext4 ${START_P7}MiB ${END_P7}MiB
+
+	START_P8=${END_P7}
+	END_P8=$((START_P8 + DATA_SIZE_MIB))
+	TYPE_P8=ext4
+	parted -s "$OUTPUT_IMG" mkpart DATAFS ext4 ${START_P8}MiB ${END_P8}MiB
+
 }
 
 #
@@ -148,15 +154,22 @@ set_a_b_partitions() {
 		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
 			rootfs_b=p4
 			dmverity_hash_b=p5
+			datafs_a=p6
+		else
+			datafs_a=p4
 		fi
 	else
 		bootfs_a=p2
 		bootfs_b=p3
 		rootfs_a=p4
 		dmverity_hash_a=p5
+		datafs_a=p6
 		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
 			rootfs_b=p6
 			dmverity_hash_b=p7
+			datafs_a=p8
+		else
+			datafs_a=p6
 		fi
 	fi
 
@@ -184,6 +197,10 @@ set_a_b_partitions() {
 		echo "[+] Populating $dmverity_hash_b (DM_VERITY hash image)..."
 		sudo dd bs=4M status=progress if="$DMVERITY_ROOTFS_HASH_IMG" of=${LOOP_DEV}${dmverity_hash_b} 
 	fi
+	if [ -n "$datafs_a" ] ; then
+		echo "[+] Populating $datafs_a (data image)..."
+		sudo dd bs=4M status=progress if="$DATAFS_IMG" of=${LOOP_DEV}${datafs_a} 
+	fi
 }
 
 #
@@ -191,6 +208,10 @@ set_a_b_partitions() {
 # 
 make_boot_image_partition() {
 	$LOCAL_DIR/make-images-bootfs.sh
+}
+
+make_data_image_partition() {
+	$LOCAL_DIR/make-images-datafs.sh
 }
 
 create_gpt_image_simple_a_only_partitions_boot_materials_in_esp() {
@@ -227,24 +248,26 @@ create_gpt_image() {
 		BOOT_SIZE_MIB=0
 	fi
 
-	echo -e "\x1b[42mWelding  $ESP_FS_FOLDER $ROOTFS_ENC_IMG $DMVERITY_ROOTFS_HASH_IMG ---> \x1b[31m$OUTPUT_IMG\x1b[0m"
+	echo -e "\x1b[42mWelding  $ESP_FS_FOLDER $BOOT_FS_FOLDER $ROOTFS_ENC_IMG $DMVERITY_ROOTFS_HASH_IMG $DATA_FS_FOLDER ---> \x1b[31m$OUTPUT_IMG\x1b[0m"
 
 	# Sizes in MiB (M in dd means MiB, not MB)
 	# Get size of your existing images in MiB (rounded up)
 	ROOT_SIZE_MIB=$(( $(du -b "$ROOTFS_ENC_IMG" | cut -f1) / 1024 / 1024 + 1 ))
 	HASH_SIZE_MIB=$(( $(du -b "$DMVERITY_ROOTFS_HASH_IMG" | cut -f1) / 1024 / 1024 + 1 ))
 
+	DATA_SIZE_MIB=$(( $(du -b "$DATAFS_IMG" | cut -f1) / 1024 / 1024 + 1 ))
 	# Add a small buffer (10MiB) for partition alignment/headers
-	TOTAL_SIZE_MIB=$((ESP_SIZE_MIB + (BOOT_SIZE_MIB + ROOT_SIZE_MIB + HASH_SIZE_MIB) * COUNT_TIMES  + 10))
+	TOTAL_SIZE_MIB=$((ESP_SIZE_MIB + (BOOT_SIZE_MIB + ROOT_SIZE_MIB + HASH_SIZE_MIB) * COUNT_TIMES + $DATA_SIZE_MIB + 10))
 
 
 	echo "[+] Creating an empty image file..."
-	echo "Calculated Image Size: ${TOTAL_SIZE_MIB}MiB. ESP: $ESP_SIZE_MIB, bootfs, $BOOT_SIZE_MIB, rootfs: $ROOT_SIZE_MIB, dmverity_hash: $HASH_SIZE_MIB). Redunant partitions: $COUNT_TIMES"
+	echo "Calculated Image Size: ${TOTAL_SIZE_MIB}MiB. ESP: $ESP_SIZE_MIB, bootfs, $BOOT_SIZE_MIB, rootfs: $ROOT_SIZE_MIB, dmverity_hash: $HASH_SIZE_MIB, datafs: $DATA_SIZE_MIB). Redunant partitions: $COUNT_TIMES"
 	dd if=/dev/zero of="$OUTPUT_IMG" bs=1M count=0 seek=$TOTAL_SIZE_MIB 
 }
 
 main() {
 	make_boot_image_partition # This would be better done at the boot-materials script - however it will make it run slower, so I deliberately include it in the only place that cares about it - when we work with GPT and the disk
+	make_data_image_partition # Should also be done separately probably same comment as the above
 	#create_gpt_image_simple_a_only_partitions_boot_materials_in_esp
 	create_gpt_image
 	echo "[+] Creating GPT partition table..."
