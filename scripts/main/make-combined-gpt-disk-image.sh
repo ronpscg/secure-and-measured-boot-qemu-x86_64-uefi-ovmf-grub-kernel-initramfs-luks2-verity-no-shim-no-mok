@@ -10,6 +10,18 @@ LOCAL_DIR=$(dirname $(readlink -f ${BASH_SOURCE[0]}))
 : ${ROOTFS_ENC_IMG="$ARTIFACTS_DIR/rootfs.enc.img"}
 : ${DMVERITY_ROOTFS_HASH_IMG=$ARTIFACTS_DIR/dmverity-hash.img}
 : ${GPT_COMBINED_DISK_IMG=$ARTIFACTS_DIR/usb_image.hdd.img}
+# Allow setting a blank image
+: ${BOOTFS_IMG_B=$BOOTFS_IMG}
+: ${ROOTFS_ENC_IMG_B="$ROOTFS_ENC_IMG"}
+: ${DMVERITY_ROOTFS_HASH_IMG_B=$DMVERITY_ROOTFS_HASH_IMG}
+
+: ${FORCE_EMPTY_B_SLOTS=true}
+if [ "$FORCE_EMPTY_B_SLOTS" = "true" ] ; then
+	echo -e "\e[33mForcing empty B slot images (helpful for UUID based identification which is the current one)\e[0m"
+	BOOTFS_IMG_B=""
+	ROOTFS_ENC_IMG_B=""
+	DMVERITY_ROOTFS_HASH_IMG_B=""
+fi
 
 OUTPUT_IMG=$GPT_COMBINED_DISK_IMG
 
@@ -178,24 +190,36 @@ set_a_b_partitions() {
 		sudo dd bs=4M status=progress if="$BOOTFS_IMG" of=${LOOP_DEV}${bootfs_a} 
 	fi
 	if [ -n "$bootfs_b" ] ; then
-		echo "[+] Populating $bootfs_b (bootfs)..."
-		sudo dd bs=4M status=progress if="$BOOTFS_IMG" of=${LOOP_DEV}${bootfs_b} 
+		if [ -e "$BOOTFS_IMG_B" ] ; then 
+			echo "[+] Populating $bootfs_b (bootfs)..."
+			sudo dd bs=4M status=progress if="$BOOTFS_IMG_B" of=${LOOP_DEV}${bootfs_b}
+		else
+			sudo mkswap -U 00000000-0000-0000-0000-000000000002 ${LOOP_DEV}${bootfs_b}
+		fi
 	fi
 	if [ -n "$rootfs_a" ] ; then
 		echo "[+] Populating $rootfs_a (rootfs)..."
 		sudo dd bs=4M status=progress if="$ROOTFS_ENC_IMG" of=${LOOP_DEV}${rootfs_a} 
 	fi
 	if [ -n "$rootfs_b" ] ; then
-		echo "[+] Populating $rootfs_b (rootfs)..."
-		sudo dd bs=4M status=progress if="$ROOTFS_ENC_IMG" of=${LOOP_DEV}${rootfs_b} 
+		if [ -e "$ROOTFS_ENC_IMG_B" ] ; then
+			echo "[+] Populating $rootfs_b (rootfs)..."
+			sudo dd bs=4M status=progress if="$ROOTFS_ENC_IMG_B" of=${LOOP_DEV}${rootfs_b} 
+		else
+			sudo mkswap -U 00000000-0000-0000-0000-000000000003 ${LOOP_DEV}${rootfs_b}
+		fi
 	fi
 	if [ -n "$dmverity_hash_a" ] ; then
 		echo "[+] Populating $dmverity_hash_a (DM_VERITY hash image)..."
 		sudo dd bs=4M status=progress if="$DMVERITY_ROOTFS_HASH_IMG" of=${LOOP_DEV}${dmverity_hash_a} 
 	fi
 	if [ -n "$dmverity_hash_b" ] ; then
-		echo "[+] Populating $dmverity_hash_b (DM_VERITY hash image)..."
-		sudo dd bs=4M status=progress if="$DMVERITY_ROOTFS_HASH_IMG" of=${LOOP_DEV}${dmverity_hash_b} 
+		if [ -e "$DMVERITY_ROOTFS_HASH_IMG_B" ] ; then
+			echo "[+] Populating $dmverity_hash_b (DM_VERITY hash image)..."
+			sudo dd bs=4M status=progress if="$DMVERITY_ROOTFS_HASH_IMG_B" of=${LOOP_DEV}${dmverity_hash_b}
+		else
+			sudo mkswap -U 00000000-0000-0000-0000-000000000004 ${LOOP_DEV}${dmverity_hash_b}
+		fi
 	fi
 	if [ -n "$datafs_a" ] ; then
 		echo "[+] Populating $datafs_a (data image)..."

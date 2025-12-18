@@ -68,7 +68,7 @@ create_ext4_image_from_folder() {
 
 		echo "OK"
 	else
-		SIZE_MIB=$(echo "$(( ($(sudo du -sb $dst  | cut  -f 1) ) )) * 1.4 / 1024/1024 + 1" | bc)
+		SIZE_MIB=$(( $(du -b "$dst" | cut -f1) / 1024 / 1024 + 1 ))
 		echo "Using $dst. Size: $SIZE_MIB MiB"
 	fi
 }
