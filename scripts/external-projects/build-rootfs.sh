@@ -21,7 +21,7 @@ add_more_packages() {
 
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y ssh isc-dhcp-client"
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y squashfs-tools"
-	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y rauc"
+	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y rauc rauc-service grub-common"
 
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get clean"
 	# Could also remove $ROOTFS_DEBOOTSTRAP_DIR/var/lib/apt/lists/* won't do it here (It's ~55MB for what is installed in the previous line)
