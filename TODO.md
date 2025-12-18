@@ -7,3 +7,41 @@
 
 
 I will not do a dedicated installer and recovery, at least not now. But it's very easily doable.
+
+
+# A/B
+Systemd can boot either way and so can the initramfs when there are two partitions with the same UUID
+
+# KERNEL
+
+## BASE DOCKER IMAGE
+add to docker libncurses-dev  - for make menuconfig
+
+# RAUC
+service won't start with the commented out line
+[slot.rootfs.0]
+#device=/dev/disk/by-partlabel/ROOTFS_A
+device=/dev/dm-1
+type=raw
+
+
+## FOR RAUC: SQUASHFS in kernel
+
+ SQUASHFS n -> y
++SQUASHFS_4K_DEVBLK_SIZE n
++SQUASHFS_CHOICE_DECOMP_BY_MOUNT n
++SQUASHFS_COMPILE_DECOMP_MULTI n
++SQUASHFS_COMPILE_DECOMP_MULTI_PERCPU n
++SQUASHFS_COMPILE_DECOMP_SINGLE y
++SQUASHFS_COMP_CACHE_FULL n
++SQUASHFS_DECOMP_SINGLE y
++SQUASHFS_EMBEDDED n
++SQUASHFS_FILE_CACHE y
++SQUASHFS_FILE_DIRECT n
++SQUASHFS_FRAGMENT_CACHE_SIZE 3
++SQUASHFS_LZ4 n
++SQUASHFS_LZO n
++SQUASHFS_XATTR n
++SQUASHFS_XZ n
++SQUASHFS_ZLIB y
++SQUASHFS_ZSTD n
