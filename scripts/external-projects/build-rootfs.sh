@@ -19,6 +19,8 @@ add_more_packages() {
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y fdisk parted e2fsprogs iproute2 iputils-ping vim tpm2-tools fwupd efitools"
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y cryptsetup"  # Useful for detection of currently enrolled keys
 
+	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y ssh isc-dhcp-client"
+	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y squashfs-tools"
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y rauc"
 
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get clean"
