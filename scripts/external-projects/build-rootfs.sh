@@ -42,6 +42,17 @@ add_more_customizations() {
 	echo "DONE. Careful though: If you boot this rootfs as RO without taking care of writable places - you will be able to work - but login will likely be slow. This is expected, and per design"
 }
 
+#
+# This is made to have a very easily visible indication of when this was last run.
+#
+update_version_information() {
+	sudo bash -c "cat > $ROOTFS_DEBOOTSTRAP_DIR/etc/update-motd.d/11-build-date" << EOF
+#!/bin/sh
+echo "\e[35mLast updated this rootfs: $(date)\e[0m"
+EOF
+	sudo chmod +x $ROOTFS_DEBOOTSTRAP_DIR/etc/update-motd.d/11-build-date
+}
+
 
 main() {
 	# The argument is meant only for directly invoking this file, after sourcing common.sh. It is not intended for the automatic use of most users with setup-or-build.sh
@@ -55,6 +66,7 @@ main() {
 			cmd=$1
 			shift
 			$cmd $@
+			update_version_information
 			exit
 			;;
 		*)
@@ -66,6 +78,7 @@ main() {
 	debootstrap
 	add_more_packages
 	add_more_customizations
+	update_version_information
 }
 
 main $@
