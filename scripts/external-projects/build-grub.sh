@@ -36,6 +36,8 @@ build_nonstandalone_image() (
 		part_gpt part_msdos ext2 linux normal boot memdisk configfile search fat ls cat echo test gcry_dsa gcry_rsa gcry_sha256 pubkey pgp \
 		tar minicmd efifwsetup
 		tpm \
+		loadenv \
+		read \
 	"}
 	: ${GRUB_TARGET_CONFIG_FILE_PREFIX_DIR="/EFI/Boot"}
 	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \
@@ -61,6 +63,8 @@ build_standalone_image_with_mkimage() (
 		part_gpt part_msdos ext2 linux normal boot memdisk configfile search fat ls cat echo test gcry_dsa gcry_rsa gcry_sha256 pubkey pgp \
 		tar minicmd efifwsetup
 		tpm \
+		loadenv \
+		read \
 	"}
 	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \
 		--disable-shim-lock \
