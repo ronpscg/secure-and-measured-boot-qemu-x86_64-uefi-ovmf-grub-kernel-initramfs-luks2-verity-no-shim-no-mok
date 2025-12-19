@@ -114,6 +114,7 @@ export GRUB_CONFIG #TEMPORARY TODO FIND OUT WHY IN THE YOCTO HACK STUFF IT DOESN
 : ${GRUB_CONFIGS="\
 	$BUILD_TOP/grub-configs/grub-basic-defs.cfg \
 	$BUILD_TOP/grub-configs/grub-common-luks-dmverity-boot-functions.cfg \
+	$BUILD_TOP/grub-configs/grub-rauc-luks-dmverity-entries.cfg \
 	$BUILD_TOP/grub-configs/grub-luks-dmverity-entries.cfg \
 	$BUILD_TOP/grub-configs/grub-fwsetup-between-separators.cfg \
 	$BUILD_TOP/grub-configs/grub-rescue-mode-entries.cfg
