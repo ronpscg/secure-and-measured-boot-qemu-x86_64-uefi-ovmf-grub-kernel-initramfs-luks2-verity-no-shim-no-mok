@@ -1,5 +1,6 @@
 #!/bin/bash
 
+: ${SETUP_HOST_PACKAGES=false}
 : ${CLONE_REPOS=false}
 : ${SETUP_KEYS=false}
 : ${BUILD_PROJECTS=false}

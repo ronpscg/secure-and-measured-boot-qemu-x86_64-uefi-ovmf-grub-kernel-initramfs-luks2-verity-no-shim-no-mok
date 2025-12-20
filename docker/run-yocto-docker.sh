@@ -7,6 +7,7 @@ else
 	: ${HOMEDIR=/home/$USER_NAME}
 fi
 
+SCRIPTS_DIR=${LOCAL_DIR}/../scripts
 : ${BINDMOUNTS=$LOCAL_DIR/bindmounts}
 : ${COPYGPGKEYS_ON_NEW_BINDMOUNTS_DIR=false} # if true, and there is a copy from a currently running dir in this repo (could do also outside but won't do so), also copy the keys from it
 
@@ -21,7 +22,7 @@ if [ ! -d "$BINDMOUNTS" ] ; then
 	mkdir -p $BINDMOUNTS || { echo "Cannot create directory $BINDMOUNTS" ; exit 1 ; }
 	set -euo pipefail
 	mkdir $BINDMOUNTS/{setup,homedir}
-	cp -va $LOCAL_DIR/bindmounts/setup/* $BINDMOUNTS/setup/
+	cp -va $SCRIPTS_DIR/setup/* $BINDMOUNTS/setup/
 	cp $LOCAL_DIR/bindmounts/homedir/entry.sh $BINDMOUNTS/homedir/
 	set +euo pipefail
 	# Won't copy the rest of the contens of the homedir as it could be huge, if it has gone previous builds
