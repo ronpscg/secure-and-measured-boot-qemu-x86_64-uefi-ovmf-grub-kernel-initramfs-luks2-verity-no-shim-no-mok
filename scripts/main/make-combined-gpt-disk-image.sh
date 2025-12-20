@@ -28,12 +28,12 @@ OUTPUT_IMG=$GPT_COMBINED_DISK_IMG
 # Handle systemd-less/udveless containers (especially if they are privileged [not that they should be, but remembering which CAP are required for what is harder ;-) ])
 setup_loopdev() {
 	LOOP_DEV=$(sudo losetup -P --show -f "$OUTPUT_IMG")
+	_LOOP_DEV=${LOOP_DEV}
 	echo "    Mapped to $LOOP_DEV"
 
 	# Inside docker (unless run with systemd), do a manual step to probe the partitions
 	# It will happen if you see something like "systemd-udevd is not running." from parted above
 	if ! pgrep systemd-udevd ; then
-		_LOOP_DEV=${LOOP_DEV}
 		sudo kpartx -a ${LOOP_DEV}
 		LOOP_DEV=/dev/mapper/$(basename $LOOP_DEV)
 	fi
