@@ -20,15 +20,23 @@ MOREMOUNTS+=" -v $HOME/pscg/customers/build-stuff/:$HOMEDIR/pscg/customers/build
 if [ ! -d "$BINDMOUNTS" ] ; then
 	echo "Helping you to setup the $BINDMOUNTS directory, from the contents of source controlled $LOCAL_DIR"
 	mkdir -p $BINDMOUNTS || { echo "Cannot create directory $BINDMOUNTS" ; exit 1 ; }
-	set -euo pipefail
-	mkdir $BINDMOUNTS/{setup,homedir}
+fi
+
+set -euo pipefail
+if [ ! -d "$BINDMOUNTS/setup" ] ; then
+	mkdir $BINDMOUNTS/setup
 	cp -va $SCRIPTS_DIR/setup/* $BINDMOUNTS/setup/
+fi
+
+if [ ! -d "$BINDMOUNTS/homedir" ] ; then
+	mkdir $BINDMOUNTS/homedir
 	cp $LOCAL_DIR/bindmounts/homedir/entry.sh $BINDMOUNTS/homedir/
 	set +euo pipefail
 	# Won't copy the rest of the contens of the homedir as it could be huge, if it has gone previous builds
 	# But will be nice enough to keep previous customizations, and history, if the user had such
 	# don't worry about the warnings of not copying directories, if there are, as it is intentional
 	cp -v $LOCAL_DIR/bindmounts/homedir/.* $BINDMOUNTS/homedir/
+	set -euo pipefail
 
 	if [ "$COPYGPGKEYS_ON_NEW_BINDMOUNTS_DIR" = "true" ] ; then
 		if [ -d $LOCAL_DIR/bindmounts/homedir/.gnupg ] ; then
@@ -36,7 +44,12 @@ if [ ! -d "$BINDMOUNTS" ] ; then
 		fi
 	fi
 fi
+
 if [ ! -f "$BINDMOUNTS/homedir/entry.sh" ] ; then
+	echo "Please make sure you have set $BINDMOUNTS/homedir correctly. If you are using the folder from inside the repo at $LOCAL_DIR, you may want to reset your repo"
+	exit 1
+fi
+if [ ! -f "$BINDMOUNTS/setup/build.sh" ] ; then
 	echo "Please make sure you have set $BINDMOUNTS/homedir correctly. If you are using the folder from inside the repo at $LOCAL_DIR, you may want to reset your repo"
 	exit 1
 fi

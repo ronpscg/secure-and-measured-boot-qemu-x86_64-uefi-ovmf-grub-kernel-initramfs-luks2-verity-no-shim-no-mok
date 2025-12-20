@@ -5,6 +5,8 @@
 ./build-docker.sh
 ```
 
+If you run into problems updating packages because it is *not the first time you set it up* - please edit the file, and build with **--no-cache**, as it is most likely the reason.
+
 ## Running (you can use the same command regardless of docker or not)
 ```
 BINDMOUNTS=~/pscg/bindmounts ./run-docker.sh
