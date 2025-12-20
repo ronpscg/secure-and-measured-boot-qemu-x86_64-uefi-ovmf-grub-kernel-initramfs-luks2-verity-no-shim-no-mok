@@ -5,13 +5,20 @@ setup() (
 	cd $REQUIRED_PROJECTS_DIR
 	if [[ "$KV" = *"rc"* ]] ; then
 		suffix=.tar.gz
-		wget https://git.kernel.org/torvalds/t/linux-$KV.tar.gz 
+		url=https://git.kernel.org/torvalds/t/linux-$KV.tar.gz 
 	else
 		suffix=.tar.xz # assuming the kernel is not very outdated
 		series="v$(echo $KV | cut -b1).x"
-		wget https://cdn.kernel.org/pub/linux/kernel/$series/linux-$KV.tar.xz
+		url=https://cdn.kernel.org/pub/linux/kernel/$series/linux-$KV.tar.xz
 	fi
-	tar xf linux-${KV}${suffix}
+
+	# Don't bother to download or untar if you think we have already done so
+	if [ ! -e linux-${KV}${suffix} ] ; then
+		wget $url
+	fi
+	if [ ! -e linux-${KV} ] ; then
+		tar xf linux-${KV}${suffix}
+	fi
 )
 
 build() (
