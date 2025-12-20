@@ -13,7 +13,8 @@ ARG HOST_DOCKER_ID
 RUN apt-get update
 
 # Linux kernel standard stuff (nasm/iasl are not needed for the kernel. efitools - depends, usually you don't need them either. EDK2/OVMF requires all of them)
-RUN apt-get install -y build-essential nasm iasl efitools bison flex libelf-dev libssl-dev  bc 
+# libncurses is for make menuconfig
+RUN apt-get install -y build-essential nasm iasl efitools bison flex libelf-dev libssl-dev  bc libncurses-dev
 # General things that are useful
 RUN apt-get install -y git vim bash-completion 
 # Debootstrap and rootfs tools (if you want to avoid superuser for debootstrapping you can use fakeroot or pseudo)
