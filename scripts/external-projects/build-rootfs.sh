@@ -33,7 +33,11 @@ add_more_customizations() {
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "passwd -d root"  # Allow an extra level of laziness, but do not autologin (it is intentional)
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "echo PscgSecureOS > /etc/hostname"
 
+	# make some room for some mounts
+	# one could also take care of the GRUB env
+	# One could also do everything on runtime under /mnt - after making the latter tmpfs on runtime (it is created empty, and it is fine)
 	sudo mkdir -p $ROOTFS_DEBOOTSTRAP_DIR/data
+	sudo mkdir -p $ROOTFS_DEBOOTSTRAP_DIR/efi
 
 	sudo cp -a $LOCAL_DIR/rootfs-files-extra/* $ROOTFS_DEBOOTSTRAP_DIR
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR /postinstall.sh
