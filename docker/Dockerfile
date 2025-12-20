@@ -79,6 +79,21 @@ RUN sudo apt-get install -y locales chrpath diffstat lz4 && sudo locale-gen "en_
 # Make kas shell a bit better looking
 RUN sudo bash -c "rm /bin/sh && ln -s /bin/bash /bin/sh"
 
+#-------------------------------------------------------------------------
+# Start the third stage for RAUC
+#-------------------------------------------------------------------------
+FROM yocto AS rauc
+RUN sudo apt-get install -y rauc squashfs-tools ssh
+
+# To use sshd without systemd (i.e. to allow update access to the docker) do the following as super user:
+# ssh-keygen -A  && /usr/sbin/sshd 
+#
+# We could add it to the entry script if it exists, for example, but I am not doing it now
+#
+
+#----------------------------------------------------------
+# Set the entry point (could be done in the first stage)
+#----------------------------------------------------------
 # Run the entry point as it is useful and may prevent some known docker issues (loopbacks et. al). Can't use variables, but it's fine because we have the WORKDIR that handles it
 ENTRYPOINT  ["./entry.sh"]
 # You can replace moving to shell with your other command if you wish. The entry point will take care of exec-ing it
