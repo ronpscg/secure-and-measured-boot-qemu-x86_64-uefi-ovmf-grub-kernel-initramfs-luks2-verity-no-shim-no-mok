@@ -4,7 +4,7 @@
 #
 # Note: one could use update-initramfs -c -b /tmp/bla -k 6.17.0-rc2 -v but it needs more configuration. The repo above uses dracut in a container
 
-: ${GIT_BRANCH_PARAM=" -b docker "}  # for now. In fact there is no real reason to keep it in another repository
+: ${GIT_BRANCH_PARAM=" -b master "}  # for now. In fact there is no real reason to keep it in another repository
 setup() (
 	mkdir -p $REQUIRED_PROJECTS_DIR
 	INITRAMFS_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/dockers/initramfs-builder
