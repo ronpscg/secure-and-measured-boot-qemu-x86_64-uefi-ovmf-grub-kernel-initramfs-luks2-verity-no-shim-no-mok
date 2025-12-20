@@ -1,25 +1,20 @@
 # dockers
 
-There are separate docker images to enable setting up a Yocto Project less workflow without introducing dependencies.
-Then, if Yocto Project is needed, only the differences are introduced, which is nice.
-
-Yes, I could do multistage. No I won't do this, at least not for now.
 ## First setup 
 ```
 ./build-docker.sh
-./build-yocto-docker.sh
 ```
 
 ## Running (you can use the same command regardless of docker or not)
 ```
-BINDMOUNTS=~/pscg/bindmounts ./run-yocto-docker.sh
+BINDMOUNTS=~/pscg/bindmounts ./run-docker.sh
 ```
 Then, follow the instructions on the screen, or do what you know you need to do. :-)
 
 
 ### Building and packaging non-yocto builds:
 ```
-BINDMOUNTS=~/pscg/bindmounts ./run-yocto-docker.sh /setup/build.sh -k -c -b -p
+BINDMOUNTS=~/pscg/bindmounts ./run-docker.sh /setup/build.sh -k -c -b -p
 ```
 
 You can then run the result with 
@@ -33,12 +28,12 @@ Note that you could add `-display curses` to your QEMU parameters, should you re
 
 ### Building and packaging Yocto Project builds:
 ```
-BINDMOUNTS=~/pscg/bindmounts ./run-yocto-docker.sh /setup/build.sh -k -c -y
+BINDMOUNTS=~/pscg/bindmounts ./run-docker.sh /setup/build.sh -k -c -y
 ```
 
 You can test the results then, on the first time you run (enrolls the certificates) using:
 ```
-BINDMOUNTS=~/pscg/bindmounts ./run-yocto-docker.sh /setup/build.sh -r
+BINDMOUNTS=~/pscg/bindmounts ./run-docker.sh /setup/build.sh -r
 ```
 
 On subsequent times, to reuse the configuration an enrollments, you can run the result inside the docker (or by providing -e for providing the environment variables before running docker)

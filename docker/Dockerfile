@@ -1,6 +1,6 @@
 # Important note: Python/Bitbake/who knows what arre most likely BROKEN on 25.10
 # Tested successfully on ubuntu:24.04, ubuntu,25.04
-FROM ubuntu:25.04
+FROM ubuntu:25.04 AS base-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -37,21 +37,21 @@ RUN apt-get install -y parted dosfstools kpartx
 
 # Remove default ubuntu user/group if they exist
 RUN if getent passwd ubuntu >/dev/null; then \
-        echo "Removing existing ubuntu user"; \
-        userdel -r ubuntu || true; \
-    fi && \
-    if getent group ubuntu >/dev/null; then \
-        echo "Removing existing ubuntu group"; \
-        groupdel ubuntu || true; \
-    fi
+	echo "Removing existing ubuntu user"; \
+	userdel -r ubuntu || true; \
+	fi && \
+	if getent group ubuntu >/dev/null; then \
+	echo "Removing existing ubuntu group"; \
+	groupdel ubuntu || true; \
+	fi
 
 # Create group and user mapped to the host UID/GID
 RUN groupadd --gid ${USER_GID} ${USERNAME} && \
-    useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}
+	useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}
 
 # Add user to sudoers with NOPASSWD
 RUN echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99_${USERNAME} && \
-    chmod 440 /etc/sudoers.d/99_${USERNAME}
+	chmod 440 /etc/sudoers.d/99_${USERNAME}
 
 # Add the user to the docker group (to allow communicating with the host daemon, which is terrible for security, but who cares ;-)
 RUN usermod -aG docker ${USERNAME}
@@ -60,6 +60,18 @@ RUN usermod -aG kvm ${USERNAME}
 # Switch to the user by default
 USER ${USERNAME}
 WORKDIR /home/${USERNAME}
+
+#------------------------------------------------------------------------
+# Start the second stage for Yocto, inheriting from "base-builder"
+#------------------------------------------------------------------------
+FROM base-builder AS yocto
+
+# Running with sudo instead of modifying the user back and forth. It's fine
+RUN sudo apt-get install -y kas
+RUN sudo apt-get install -y locales chrpath diffstat lz4 && sudo locale-gen "en_US.UTF-8"
+
+# Make kas shell a bit better looking
+RUN sudo bash -c "rm /bin/sh && ln -s /bin/bash /bin/sh"
 
 # Run the entry point as it is useful and may prevent some known docker issues (loopbacks et. al). Can't use variables, but it's fine because we have the WORKDIR that handles it
 ENTRYPOINT  ["./entry.sh"]
