@@ -19,12 +19,12 @@ if [ ! "$ROOTFS_DECRYPTED_IMG" = "/dev/mapper/${LUKS_MAPPER_NAME}" ] ; then
 	export LUKS_DONT_FSCK_TARGET_FS=true
 fi
 
-: ${ROOTFS_IMG_SIZE=""}
+: ${ROOTFS_SIZE_MIB=""}
 : ${DONT_RECREATE_ROOTFS=false}
 . $LOCAL_DIR/make-images-ext4-common.sh 
 create_ext4_image_from_folder $ROOTFS_FS_FOLDER $ROOTFS_IMG rootfs $DONT_RECREATE_ROOTFS $ROOTFS_SIZE_MIB
 
-if [ -n "$ROOTFS_SIZE_MIB" -a ! "$ROOTFS_SIZE_MIB" = "0" ] ; then
+if [ -z "$ROOTFS_SIZE_MIB" -o -n "$ROOTFS_SIZE_MIB" -a ! "$ROOTFS_SIZE_MIB" = "0" ] ; then
 	# The next line is not needed as it makes us calculate the same thing 3 times
 	# However the called scripts might expect it, so let's keep it like this
 	ROOTFS_SIZE_MIB=$(( $(du -b "$ROOTFS_IMG" | cut -f1) / 1024 / 1024 + 1 ))
