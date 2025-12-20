@@ -10,32 +10,68 @@
 : ${ENROLL_AND_RUN_YOCTO_ARTIFACTS=false}
 
 : ${BUILDER_SRC_DIR=$HOME/secboot-ovmf-x86_64}
-: ${SCRIPTS_DIR=$BUILDER_SRC_DIR/scripts}
-: ${COMMON_CONFIG_FILE=$BUILDER_SRC_DIR/local.config}
-export COMMON_CONFIG_FILE
 
 : ${EXAMPLE_TEST_SCRIPTS_DIR=$HOME/example-test-secboot/} # TODO probably consolidate with scripts dir later
 
 : ${KAS_DIR=~/yocto/kasdir}
 
-: ${COMMIT_SECBOOT_OVMF_X86_64=docker}
+: ${COMMIT_SECBOOT_OVMF_X86_64=master}
 : ${COMMIT_EXAMPLE_TEST_SECBOOT=master}
 : ${COMMIT_KAS_YOCTO_SECBOOT=master}
 : ${COMMIT_POKY=scarthgap} # not used anywhere yet, as it's all scarthgap in the kas files at the moment but wouldn't hurt to prepare for other releases
 
-clone_repos() {
-	set +e	# Allow to fail in case the folder exists
-	git clone https://github.com/ronpscg/secure-and-measured-boot-qemu-x86_64-uefi-ovmf-grub-kernel-initramfs-luks2-verity-no-shim-no-mok.git -b $COMMIT_SECBOOT_OVMF_X86_64 ~/secboot-ovmf-x86_64
-	git clone https://github.com/ronpscg/kas-yocto-secure-and-measuerd-boot-examples.git -b $COMMIT_KAS_YOCTO_SECBOOT ${KAS_DIR}
-	# There is no real need in this repo - but it can be easier to test like this externally build folders that follow our Yocto Project image conventions, so it is cloned as well
-	git clone https://github.com/ronpscg/example-test-secboot-qemu.git -b $COMMIT_EXAMPLE_TEST_SECBOOT ${EXAMPLE_TEST_SCRIPTS_DIR}
-	set -e
+check_docker() {
+	[ -f /.dockerenv ]
+}
 
+check_path() {
+	local rp_lsd=$(realpath $LOCAL_DIR/../..)
+	local rp_bsd=$(realpath $BUILDER_SRC_DIR)
+	if [ ! "$rp_lsd" = "$rp_bsd" ] ; then
+		if ! check_docker ; then
+			echo -e "\e[33mYou are not running inside Docker. We will allow you to run from $rp_lsd. However, we recommend using $rp_bsd as your main builder dir\e[0m"
+			BUILDER_SRC_DIR=$rp_lsd
+		fi
+	fi
+}
+
+init_path_dependent_vars() {
+	: ${SCRIPTS_DIR=$BUILDER_SRC_DIR/scripts}
+	: ${COMMON_CONFIG_FILE=$BUILDER_SRC_DIR/local.config}
+	export COMMON_CONFIG_FILE
+}
+
+clone_repos() {
+	if [ ! -d $(realpath $BUILDER_SRC_DIR) ] ; then
+		git clone https://github.com/ronpscg/secure-and-measured-boot-qemu-x86_64-uefi-ovmf-grub-kernel-initramfs-luks2-verity-no-shim-no-mok.git -b $COMMIT_SECBOOT_OVMF_X86_64  ${BUILDER_SRC_DIR}
+	else
+		echo "You already have $BUILDER_SRC_DIR cloned"
+	fi
+	if [ ! -d $(realpath ${KAS_DIR}) ] ; then
+		git clone https://github.com/ronpscg/kas-yocto-secure-and-measuerd-boot-examples.git -b $COMMIT_KAS_YOCTO_SECBOOT ${KAS_DIR}
+	else
+		echo "You already have $KAS_DIR cloned"
+	fi
+	if [ ! -d $(realpath ${EXAMPLE_TEST_SCRIPTS_DIR}) ] ; then
+		# There is no real need in this repo - but it can be easier to test like this externally build folders that follow our Yocto Project image conventions, so it is cloned as well
+		git clone https://github.com/ronpscg/example-test-secboot-qemu.git -b $COMMIT_EXAMPLE_TEST_SECBOOT ${EXAMPLE_TEST_SCRIPTS_DIR}
+	else
+		echo "You already have $EXAMPLE_TEST_SCRIPTS_DIR cloned"
+	fi
+}
+
+setup_host_packages() {
+	if check_docker ; then
+		echo "You don't need to do it in Docker, but we will let you run it anyway. It should install nothing - or you are not running the latest Docker image versions"
+	fi
+	# The next script should reside with this script, on the same directory, so even if you are running this from other cloned places, you will get the desired results
+	# Do not modify the running directory, keep it as is, it is intended.
+	./install-host-packages.sh
 }
 
 setup_keys() {
 	# Expected to be called separately, here for the sake of completion
-	./prepare-keys.sh
+	$BUILDER_SRC_DIR/scripts/setup/prepare-keys.sh
 }
 
 build_external_projects() {
@@ -86,7 +122,7 @@ run_qemu_on_yocto_build() {
 	fi
 
 	echo "Running QEMU." 
-	if [ -f /.dockerenv ] ; then 
+	if check_docker ; then 
 		echo -e "\eIf you are in docker - make sure your last console in your kernel cmdline is \e[33mconsole=ttyS0\e[0m as we will run it in a -nographic mode"
 	fi
 	./test.sh
@@ -94,12 +130,12 @@ run_qemu_on_yocto_build() {
 
 
 usage() {
-	echo -e "$0 [-c|-k|-b|-p|-q|-y|-r]\n  -c: clone repos\n  -k setup keys\n  -b: build external projects\n  -p: package images\n  -q: run QEMU\n  -y: Build and Package Yocto Project\n  -r: enroll certificates and run Yocto Project artifacts prepared with $0 -y"
+	echo -e "$0 [-s|-c|-k|-b|-p|-q|-y|-r]\n  -s: setup host packages\n  -c: clone repos\n  -k setup keys\n  -b: build external projects\n  -p: package images\n  -q: run QEMU\n  -y: Build and Package Yocto Project\n  -r: enroll certificates and run Yocto Project artifacts prepared with $0 -y"
 	exit $1
 }
 
 main() {
-	while getopts "kcbhpqyr" opt ; do
+	while getopts "kcbhpqyrs" opt ; do
 		case $opt in
 			k)
 				SETUP_KEYS=true
@@ -118,11 +154,14 @@ main() {
 			q)
 				RUN_QEMU=true
 				;;
-			y)
-				BUILD_YOCTO=true;
-				;;
 			r)
 				ENROLL_AND_RUN_YOCTO_ARTIFACTS=true;
+				;;
+			s)
+				SETUP_HOST_PACKAGES=true
+				;;
+			y)
+				BUILD_YOCTO=true;
 				;;
 			h)
 				usage 0
@@ -155,6 +194,13 @@ main() {
 	set -euo pipefail
 	LOCAL_DIR=$(readlink -f $(dirname ${BASH_SOURCE[0]}}))
 	cd $LOCAL_DIR
+
+	check_path # be strict inside Docker as per the directory structure. Be more permissive inside a non docker host
+	init_path_dependent_vars # init path dependent vars according to BUILDER_SRC_DIR (unless they are preprovisioned otherwise)
+
+	if [ "$SETUP_HOST_PACKAGES" = "true" ] ; then
+		setup_host_packages
+	fi
 
 	if  [ "$CLONE_REPOS" = "true" ] ; then
 		clone_repos
