@@ -84,6 +84,8 @@ export $PUT_BOOT_MATERIALS_IN_ESP_FS
 # more common definitions
 #----------------------------------------------------
 : ${LUKS_AND_DMVERITY_EXPORTED_ENV_FILE=$ARTIFACTS_DIR/luks-and-dmverity-kernel-cmdline-values.env} # aimed to be sourced when updating the bootloader materials
+: ${TPM_AUTOENROLLMENT_PASSWORD=pass}	# Read comments in the respective GRUB config file they tell when it is and when it isn't secure to do something like this
+: ${LUKS_PASSWORD=$TPM_AUTOENROLLMENT_PASSWORD}
 
 #====================================================
 # Per external project ("component") building definitions
