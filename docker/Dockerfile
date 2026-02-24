@@ -1,6 +1,9 @@
 # Important note: Python/Bitbake/who knows what arre most likely BROKEN on 25.10
 # Tested successfully on ubuntu:24.04, ubuntu,25.04
-FROM ubuntu:25.04 AS base-builder
+
+# If anyone needs BASE after the FROM parts - they will need to redeclare BASE. In this Dockerfile there is no need for that
+ARG BASE=ubuntu:22.04
+FROM ${BASE} AS base-builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -16,13 +19,16 @@ RUN apt-get update
 # libncurses is for make menuconfig
 RUN apt-get install -y build-essential nasm iasl efitools bison flex libelf-dev libssl-dev  bc libncurses-dev
 # General things that are useful
-RUN apt-get install -y git vim bash-completion 
+RUN apt-get install -y git vim bash-completion  tmux
 # Debootstrap and rootfs tools (if you want to avoid superuser for debootstrapping you can use fakeroot or pseudo)
 RUN apt-get install -y sudo debootstrap
 # Native initramfs generation (without using Docker inside Docker)
 RUN apt-get install -y dracut tpm2-tools
 # EDK2/OVMF
-RUN apt-get install -y uuid-runtime uuid-dev nasm iasl efitools python3-virt-firmware
+RUN apt-get install -y uuid-runtime uuid-dev nasm iasl efitools 
+
+# EDK2/OVMF - conditionally install virt-firmware according to OS release, as Ubuntu provides the package only beginning with version 24.04, and building some Yocto versions requires 22.04, and it's a small change.
+RUN if [ $(lsb_release -rs) = 22.04 ] ; then sudo apt-get install -y python3-pip && pip3 install virt-firmware ; else apt-get install -y  python3-virt-firmware ; fi
 # Keep GRUB bootstrap and make (gawk) happy
 RUN apt-get install -y gettext libtool pkg-config autoconf autoconf-archive autopoint gawk
 # This step is for seamless integration with the current scripts, and running it within docker in docker. Do be careful of the chmod of the artifacts, all might need to be considered

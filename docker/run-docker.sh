@@ -85,6 +85,7 @@ fi
 #-----------------------------------------
 # Running docker
 #-----------------------------------------
+: ${BASE=ubuntu:22.04}
 PRIVILEGED=--privileged # To allow dealing with internal docker mounts and with losetup
 docker run -it --rm  $PRIVILEGED -v /var/run/docker.sock:/var/run/docker.sock \
 	--group-add $(getent group docker | awk -F: '{print $3}')  \
@@ -93,4 +94,4 @@ docker run -it --rm  $PRIVILEGED -v /var/run/docker.sock:/var/run/docker.sock \
 	${MOREMOUNTS} \
 	-u $USER_NAME -e USER=$USER_NAME -w ${HOMEDIR}  \
 	--name "yocto-builder-docker" \
-	wip-yocto-docker-secboot-builder:latest "$@"
+	wip-yocto-docker-secboot-builder-$BASE "$@"
