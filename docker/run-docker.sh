@@ -93,5 +93,5 @@ docker run -it --rm  $PRIVILEGED -v /var/run/docker.sock:/var/run/docker.sock \
 	-v ${BINDMOUNTS}/setup:/setup/ -v  ${BINDMOUNTS}/homedir:$HOMEDIR \
 	${MOREMOUNTS} \
 	-u $USER_NAME -e USER=$USER_NAME -w ${HOMEDIR}  \
-	--name "yocto-builder-docker" \
+	--name "yocto-builder-docker-$(echo $BASE | tr -s ':' '-')" \
 	wip-yocto-docker-secboot-builder-$BASE "$@"
