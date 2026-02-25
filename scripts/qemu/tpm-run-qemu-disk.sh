@@ -6,6 +6,15 @@
 #	ROOTFS_IMG
 #	DMVERITY_HASH_IMG
 
+check_kvm() {
+	if [ -c /dev/kvm ] ; then 
+		ENABLE_KVM="-enable-kvm" 
+	else
+		echo -e "\e[33mKVM is not enabled on your machine. Expect slower qemu performance.\e[0m"
+		ENABLE_KVM=""
+	fi
+}
+
 set -a
 : ${OVMF_CODE=}
 : ${OVMF_VARS=}
@@ -19,8 +28,9 @@ set +a
 cd $(dirname ${BASH_SOURCE[0]})
 ./swtpm-start.sh || exit 1
 
+check_kvm
 set -u # will fail any unset variables, so less code on checking the user called this script properly
-qemu-system-x86_64 -enable-kvm \
+qemu-system-x86_64 $ENABLE_KVM \
     -drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
     -drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
     -drive if=virtio,format=raw,file=$GPT_COMBINED_DISK_IMG \

@@ -46,7 +46,7 @@ export GPT_COMBINED_DISK_IMG=$DIR/usb_image.hdd.img
 
 dont_do_disk() {
 set -u # will fail any unset variables, so less code on checking the user called this script properly
-qemu-system-x86_64 -enable-kvm \
+qemu-system-x86_64 $ENABLE_KVM \
     -drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
     -drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
     -drive if=virtio,format=raw,file=fat:rw:$FAT_ESP_FS_DIR \
@@ -65,7 +65,7 @@ qemu-system-x86_64 -enable-kvm \
 dont_do_disk_encrypted() {
 set -u # will fail any unset variables, so less code on checking the user called this script properly
 export ROOTFS_IMG=$DIR/rootfs.enc.img
-qemu-system-x86_64 -enable-kvm \
+qemu-system-x86_64 $ENABLE_KVM \
     -drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
     -drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
     -drive if=virtio,format=raw,file=fat:rw:$FAT_ESP_FS_DIR \
@@ -78,7 +78,7 @@ qemu-system-x86_64 -enable-kvm \
     $@
 }
 do_disk()  {
-	qemu-system-x86_64 -enable-kvm \
+	qemu-system-x86_64 $ENABLE_KVM \
 		-drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
 		-drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
 		-drive if=virtio,format=raw,file=$DIR/usb_image.hdd.img \
@@ -111,8 +111,18 @@ run_swtpm() {
 	$SWTPM_SCRIPT || exit 1
 }
 
+check_kvm() {
+	if [ -c /dev/kvm ] ; then 
+		ENABLE_KVM="-enable-kvm"
+	else
+		echo -e "\e[33mKVM is not enabled on your machine. Expect slower qemu performance.\e[0m"
+		ENABLE_KVM=""
+	fi
+}
+
 main() {
 	check_ovmf_exists
+	check_kvm
 	if [ ! -e "$DIR" ] ; then
 		echo -e "\e[31m${DIR} does not exist.\e[0m"
 		echo "Please make sure it exists / set YOCTO_BUILD_DIR to the right path and make sure you have the correct materials there."

@@ -102,9 +102,20 @@ add_data_partition() {
 	# grep -q host-datafs /sys/bus/virtio/drivers/9pnet_virtio/virtio*/mount_tag && mount -t 9p -o trans=virtio host-datafs /data
 }
 
+check_kvm() {
+	if [ -c /dev/kvm ] ; then
+		ENABLE_KVM="-enable-kvm"
+	else
+		echo -e "\e[33mKVM is not enabled on your machine. Expect slower qemu performance.\e[0m"
+		ENABLE_KVM=""
+	fi
+}
+
+
 # Of course things could be done more elegantly. The entire thing here, or "challenge" is that using two different drives with the same image, will make QEMU unhappy
 # 
 main() {
+	check_kvm
 	# the separation is to assist in debugging, and to not waste much time on scripting cleverness
 	#set_a_only_params
 	set_a_b_params
@@ -117,7 +128,7 @@ main() {
 	./swtpm-start.sh || exit 1
 
 	set -u # will fail any unset variables, so less code on checking the user called this script properly
-	qemu-system-x86_64 -enable-kvm \
+	qemu-system-x86_64 $ENABLE_KVM \
 		-drive if=pflash,format=raw,unit=0,readonly=on,file=${OVMF_CODE} \
 		-drive if=pflash,format=raw,unit=1,file=${OVMF_VARS} \
 		$QEMU_DRIVE_PARAMS \
