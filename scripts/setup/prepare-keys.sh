@@ -27,6 +27,11 @@ fi
 echo "Autogenerating keys..."
 $SRC_DIR/scripts/main/setup-secure-boot-PKI.sh
 
-
-
-
+# Everything here is optional, and so we do it according to the configuration options
+. $SRC_DIR/scripts/common.sh || { echo "You have likely not cloned ot repo properly or modified it unjustfully" ; ext 1 ; }
+if [ "$RAUC" = "true" ] ; then
+	echo "Setting up RAUC keys"
+	if ! $SRC_DIR/scripts/external-projects/rauc/create-rauc-keys-dev.sh ; then
+		echo "Failed to generate RAUC key materials"
+	fi
+fi

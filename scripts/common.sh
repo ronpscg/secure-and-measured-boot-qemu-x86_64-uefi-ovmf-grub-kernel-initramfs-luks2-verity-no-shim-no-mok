@@ -157,4 +157,21 @@ INITRAMFS_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/dockers/initramfs-builder
 : ${ROOTFS_DEBOOTSTRAP_DIR=$REQUIRED_PROJECTS_ARTIFACTS_DIR/rootfs}
 : ${ROOTFS_FS_FOLDER=$ROOTFS_DEBOOTSTRAP_DIR}
 
+#-----------------------------------------------------
+# OTA update framework: PscgOTA
+#-----------------------------------------------------
+: ${PSCG_OTA=false}	# Don't bother building out of PscgBuildOS
 
+#-----------------------------------------------------
+# OTA update framework: RAUC
+#-----------------------------------------------------
+: ${RAUC=true}
+: ${RAUC_KEYS_DIR=~/pscg/customers/build-stuff/rauc/keys/}
+: ${RAUC_CA_CERT=$RAUC_KEYS_DIR/ca.cert.pem}
+: ${RAUC_KEY=$RAUC_KEYS_DIR/development-1.key.pem}
+: ${RAUC_CERT=$RAUC_KEYS_DIR/development-1.cert.pem}
+
+#-----------------------------------------------------
+# OTA update framework: SWUPDATE
+#-----------------------------------------------------
+: ${SWUPDATE=false}

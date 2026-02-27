@@ -44,6 +44,13 @@ add_more_customizations() {
 	sudo mkdir -p $ROOTFS_DEBOOTSTRAP_DIR/efi
 
 	sudo cp -a $LOCAL_DIR/rootfs-files-extra/* $ROOTFS_DEBOOTSTRAP_DIR
+	if [ "$RAUC" = "true" ] ; then
+		if ! sudo cp -a $RAUC_CA_CERT $ROOTFS_DEBOOTSTRAP_DIR/etc/rauc/keyring.pem ; then
+			echo "Failed to populate your RAUC keyring with $RAUC_CA_CERT. Did you prooperly create the key materials?"
+			exit 1
+		fi
+	fi
+
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR /postinstall.sh
 
 
