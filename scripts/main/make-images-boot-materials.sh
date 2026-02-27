@@ -85,6 +85,7 @@ update_grub_config() {
 		)       
 	fi
 }
+
 update_grub() {
         if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB" = "true" ] ; then
                 return
@@ -95,6 +96,15 @@ update_grub() {
 	. $LOCAL_DIR/../external-projects/build-grub.sh copy_artifacts
 }
 
+#
+# This is optional and can be done in many ways, including having a separate partition
+#
+copy_grub_env() {
+	if [ "$RAUC" = "true" ] ; then
+		echo "[+] Creating a default GRUB environment for RAUC"
+		$LOCAL_DIR/rauc/make-initial-grub-env.sh
+	fi
+}
 #
 # GRUB has its own way to use signatures, if the SHIM is not involved.
 # Sign the elements with the respective GRUB keys
@@ -181,6 +191,8 @@ main() {
 	update_grub_config		# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
 	update_grub			# This is a separate step because unless you want to install a non-standalone GRUB, you must build it after you know the config
 	copy_grub			# Separating copying from updating, to allow copying a config file where it is separate and rebuilding GRUB is not necessary
+
+	copy_grub_env			# Optionally populate a grubenv 
 	
 	sign_boot_elements		# This signs everything that needs to be signed
 
