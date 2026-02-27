@@ -8,7 +8,7 @@ The idea:
 
 So testing can be done as follows (no need to specify ROOTFS_SIZE_MIB, or the other parameters anymore)
 ```
-../external-projects/setup-or-build.sh rootfs add_more_customizations
+~/secboot-ovmf-x86_64/scripts/external-projects/setup-or-build.sh rootfs add_more_customizations
 rm ~/pscg/secureboot-qemu-x86_64-efi-grub/artifacts/*.img
 ROOTFS_SIZE_MIB=1000 DONT_RECREATE_ROOTFS=false DONT_RECREATE_DATAFS=false DONT_RECREATE_BOOTFS=false CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS=true PUT_BOOT_MATERIALS_IN_ESP_FS=false /setup/build.sh -p -q
 ```
