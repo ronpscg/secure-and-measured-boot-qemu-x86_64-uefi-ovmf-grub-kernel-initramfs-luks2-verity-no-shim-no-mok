@@ -30,12 +30,28 @@ for ID in $RAUC_TARGET_SLOTS; do
 				exit 1
 			fi
 			echo -e "\e[32m$0 Success.\e[0m"
+
+			# Ensure the slot we just installed to is NOT marked OK yet
+			# Without it, the success value of the post install hook would set it as OK automatically, and while one may decide it is fine before booting,
+			# one should usually prefer to "mark-good" only after verifying some things in runtime after rebooting
+
+			# Retrieve retry policy from grubenv, default to 3 if missing/corrupt
+			RETRY_POLICY=$(grub-editenv /efi/EFI/Boot/grubenv list | grep RAUC_RETRY_COUNT | cut -d= -f2)
+			if [ -z "$RETRY_POLICY" ]; then RETRY_POLICY=3; fi
+
+			if [ "$NAME" = "rootfs.0" ]; then
+				grub-editenv /efi/EFI/Boot/grubenv set A_OK=0
+				grub-editenv /efi/EFI/Boot/grubenv set A_TRY=$RETRY_POLICY
+			else
+				grub-editenv /efi/EFI/Boot/grubenv set B_OK=0
+				grub-editenv /efi/EFI/Boot/grubenv set B_TRY=$RETRY_POLICY
+			fi
 			;;
 
 		*)
 			# Silently ignore boot, dmverity hash, or other partitions
 			echo "$0: Skipping non-rootfs partition: $NAME"
 			;;
-		esac
-done
+	esac
 
+done
