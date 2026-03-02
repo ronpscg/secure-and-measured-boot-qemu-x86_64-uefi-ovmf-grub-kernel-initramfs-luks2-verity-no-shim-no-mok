@@ -9,3 +9,10 @@ if [ "$BASH" ]; then
     . ~/.bashrc
   fi
 fi
+
+if [ -f /opt/scripts/rauc/rauc_functions.sh ] ; then
+	. /opt/scripts/rauc/rauc_functions.sh
+fi
+
+date >> /tmp/log
+grub-list
