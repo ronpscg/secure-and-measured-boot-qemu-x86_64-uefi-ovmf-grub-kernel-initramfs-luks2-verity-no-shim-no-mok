@@ -86,12 +86,85 @@ set_a_only_partitions_boot_materials_in_esp() {
 	sudo dd if="$DMVERITY_ROOTFS_HASH_IMG" of="$P3" bs=4M status=progress
 }
 
+tmp_put_in_other_places_logic() {
+        if  [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
+		bootfs_a=""
+		bootfs_b=""
+		rootfs_a=p2
+		dmverity_hash_a=p3
+		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
+			rootfs_b=p4
+			dmverity_hash_b=p5
+			datafs_a=p6
+		else
+			datafs_a=p4
+		fi
+	else
+		bootfs_a=p2
+		bootfs_b=p3
+		rootfs_a=p4
+		dmverity_hash_a=p5
+		datafs_a=p6
+		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
+			rootfs_b=p6
+			dmverity_hash_b=p7
+			datafs_a=p8
+		else
+			datafs_a=p6
+		fi
+	fi
+}
+#
+# This is a helper function etting the partition table - without DMVERITY usage
+# Let's assume here that we want dual partitions for both rootfs and boot, and that the boot materials are in boot
+#
+setup_partition_table_no_luks_no_dmverity() {
+        if  [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" -o ! "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
+		echo "We will not support this at this point, out of code bervity, and to avoid having empty partitions"
+		exit 1
+	fi
+	
+	echo "Setting dual boot partitions"
+	START_P2=${ESP_SIZE_MIB}
+	END_P2=$((START_P2 + BOOT_SIZE_MIB))
+	TYPE_P2=ext4
+	parted -s "$OUTPUT_IMG" mkpart BOOT_A ext4 ${START_P2}MiB ${END_P2}MiB
+
+	START_P3=${END_P2}
+	END_P3=$((START_P3 + BOOT_SIZE_MIB))
+	TYPE_P3=ext4
+	parted -s "$OUTPUT_IMG" mkpart BOOT_B ext4 ${START_P3}MiB ${END_P3}MiB
+
+	echo "Setting dual rootfs (without DMVERITY hash partitions)"
+	START_P4=${END_P3}
+	END_P4=$((START_P4 + ROOT_SIZE_MIB))
+	TYPE_P4=ext4
+	parted -s "$OUTPUT_IMG" mkpart ROOTFS_A ext4 ${START_P4}MiB ${END_P4}MiB
+
+	START_P5=${END_P4}
+	END_P5=$((START_P5 + ROOT_SIZE_MIB))
+	TYPE_P5=ext4
+	parted -s "$OUTPUT_IMG" mkpart ROOTFS_B ext4 ${START_P5}MiB ${END_P5}MiB
+
+	START_P6=${END_P5}
+	END_P6=$((START_P6 + DATA_SIZE_MIB))
+	TYPE_P6=ext4
+	parted -s "$OUTPUT_IMG" mkpart DATAFS ext4 ${START_P6}MiB ${END_P6}MiB
+
+	bootfs_a=p2
+	bootfs_b=p3
+	rootfs_a=p4
+	rootfs_b=p5
+	datafs_a=p6
+	dmverity_hash_a=""
+	dmverity_hash_b=""
+}
 
 #
 # This is a helper function etting the partition table
 # Let's assume here that we want dual partitions for both rootfs and boot, and that the boot materials are in boot
 #
-setup_partition_table() {
+setup_partition_table_luks_dmverity() {
 	echo "Setting dual boot partitions"
 	START_P2=${ESP_SIZE_MIB}
 	END_P2=$((START_P2 + BOOT_SIZE_MIB))
@@ -129,6 +202,18 @@ setup_partition_table() {
 	TYPE_P8=ext4
 	parted -s "$OUTPUT_IMG" mkpart DATAFS ext4 ${START_P8}MiB ${END_P8}MiB
 
+	tmp_put_in_other_places_logic # TODO: see the other function it's like a copy paste but without some of the flags
+}
+
+setup_partition_table() {
+	if [ "$LUKS" = "true" -a "$DMVERITY" = "true" ] ; then
+		setup_partition_table_luks_dmverity
+	elif [ "$LUKS" = "false" -a "$DMVERITY" = "false" ] ; then
+		setup_partition_table_no_luks_no_dmverity
+	else
+		echo "Not implemented"
+		exit 1
+	fi
 }
 
 #
@@ -158,33 +243,6 @@ set_a_b_partitions() {
 	rmdir "$MOUNTPOINT"
 
 	echo "[+] Populating the rest of the Linux partitions"
-        if  [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "true" ] ; then
-		bootfs_a=""
-		bootfs_b=""
-		rootfs_a=p2
-		dmverity_hash_a=p3
-		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
-			rootfs_b=p4
-			dmverity_hash_b=p5
-			datafs_a=p6
-		else
-			datafs_a=p4
-		fi
-	else
-		bootfs_a=p2
-		bootfs_b=p3
-		rootfs_a=p4
-		dmverity_hash_a=p5
-		datafs_a=p6
-		if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
-			rootfs_b=p6
-			dmverity_hash_b=p7
-			datafs_a=p8
-		else
-			datafs_a=p6
-		fi
-	fi
-
 	if [ -n "$bootfs_a" ] ; then
 		echo "[+] Populating $bootfs_a (bootfs)..."
 		sudo dd bs=4M status=progress if="$BOOTFS_IMG" of=${LOOP_DEV}${bootfs_a} 
@@ -199,19 +257,19 @@ set_a_b_partitions() {
 	fi
 	if [ -n "$rootfs_a" ] ; then
 		echo "[+] Populating $rootfs_a (rootfs)..."
-		sudo dd bs=4M status=progress if="$ROOTFS_ENC_IMG" of=${LOOP_DEV}${rootfs_a} 
+		sudo dd bs=4M status=progress if="$ROOTFS_IMG_TO_FLASH" of=${LOOP_DEV}${rootfs_a}
 	fi
 	if [ -n "$rootfs_b" ] ; then
-		if [ -e "$ROOTFS_ENC_IMG_B" ] ; then
+		if [ -e "$ROOTFS_IMG_TO_FLASH_B" ] ; then
 			echo "[+] Populating $rootfs_b (rootfs)..."
-			sudo dd bs=4M status=progress if="$ROOTFS_ENC_IMG_B" of=${LOOP_DEV}${rootfs_b} 
+			sudo dd bs=4M status=progress if="$ROOTFS_IMG_TO_FLASH_B" of=${LOOP_DEV}${rootfs_b}
 		else
 			sudo mkswap -U 00000000-0000-0000-0000-000000000003 ${LOOP_DEV}${rootfs_b}
 		fi
 	fi
 	if [ -n "$dmverity_hash_a" ] ; then
 		echo "[+] Populating $dmverity_hash_a (DM_VERITY hash image)..."
-		sudo dd bs=4M status=progress if="$DMVERITY_ROOTFS_HASH_IMG" of=${LOOP_DEV}${dmverity_hash_a} 
+		sudo dd bs=4M status=progress if="$DMVERITY_ROOTFS_HASH_IMG" of=${LOOP_DEV}${dmverity_hash_a}
 	fi
 	if [ -n "$dmverity_hash_b" ] ; then
 		if [ -e "$DMVERITY_ROOTFS_HASH_IMG_B" ] ; then
@@ -223,7 +281,7 @@ set_a_b_partitions() {
 	fi
 	if [ -n "$datafs_a" ] ; then
 		echo "[+] Populating $datafs_a (data image)..."
-		sudo dd bs=4M status=progress if="$DATAFS_IMG" of=${LOOP_DEV}${datafs_a} 
+		sudo dd bs=4M status=progress if="$DATAFS_IMG" of=${LOOP_DEV}${datafs_a}
 	fi
 }
 
@@ -231,26 +289,28 @@ make_data_image_partition() {
 	$LOCAL_DIR/make-images-datafs.sh
 }
 
-create_gpt_image_simple_a_only_partitions_boot_materials_in_esp() {
-	echo -e "\x1b[42mWelding  $ESP_FS_FOLDER $ROOTFS_ENC_IMG $DMVERITY_ROOTFS_HASH_IMG ---> \x1b[31m$OUTPUT_IMG\x1b[0m"
-
-	# Sizes in MiB (M in dd means MiB, not MB)
-	ESP_SIZE_MIB=200 # Could check the size of the disk and add some - but basically 200 is a lot, and gives >100MB for extra (test) images even if the "boot partition" is on the ESP itself (e.g. <ESP>/boot)
-	BOOT_SIZE_MIB=$(( $(du -b "$BOOTFS_IMG" | cut -f1) / 1024 / 1024 + 1 ))
-	# Get size of your existing images in MiB (rounded up)
-	ROOT_SIZE_MIB=$(( $(du -b "$ROOTFS_ENC_IMG" | cut -f1) / 1024 / 1024 + 1 ))
-	HASH_SIZE_MIB=$(( $(du -b "$DMVERITY_ROOTFS_HASH_IMG" | cut -f1) / 1024 / 1024 + 1 ))
-
-	# Add a small buffer (10MiB) for partition alignment/headers
-	TOTAL_SIZE_MIB=$((ESP_SIZE_MIB + ROOT_SIZE_MIB + HASH_SIZE_MIB + 10))
-
-
-	echo "[+] Creating an empty image file..."
-	echo "Calculated Image Size: ${TOTAL_SIZE_MIB}MiB. ESP: $ESP_SIZE_MIB, rootfs: $ROOT_SIZE_MIB, dmverity_hash: $HASH_SIZE_MIB)"
-	dd if=/dev/zero of="$OUTPUT_IMG" bs=1M count=0 seek=$TOTAL_SIZE_MIB 
+print_welding_images_information() {
+	# Print information on what we are going to do in this function
+	local images_to_print="$ESP_FS_FOLDER"
+	if [ "$PUT_BOOT_MATERIALS_IN_ESP_FS" = "false" ] ; then
+		images_to_print+=" $BOOT_FS_FOLDER"
+	fi
+	if [ "$LUKS"  = "true" ] ; then
+		images_to_print+=" $ROOTFS_ENC_IMG"
+	else
+		images_to_print+=" $ROOTFS_IMG"
+	fi
+	if [ "$DMVERITY" = "true" ] ; then
+		images_to_print+=" $DMVERITY_ROOTFS_HASH_IMG"
+	fi
+	images_to_print+=" $DATA_FS_FOLDER"
+	echo -e "\x1b[42mWelding  $images_to_print ---> \x1b[31m$OUTPUT_IMG\x1b[0m"
 }
 
-create_gpt_image() {
+#
+# Calculate different image sizes
+#
+calculate_image_sizes() {
 	TOTAL_SIZE_MIB=0
 	COUNT_TIMES=1
 	if [ "$CREATE_DUAL_BOOT_AND_ROOTFS_PARTITIONS" = "true" ] ; then
@@ -265,29 +325,67 @@ create_gpt_image() {
 		BOOT_SIZE_MIB=0
 	fi
 
-	echo -e "\x1b[42mWelding  $ESP_FS_FOLDER $BOOT_FS_FOLDER $ROOTFS_ENC_IMG $DMVERITY_ROOTFS_HASH_IMG $DATA_FS_FOLDER ---> \x1b[31m$OUTPUT_IMG\x1b[0m"
-
-	# Sizes in MiB (M in dd means MiB, not MB)
 	# Get size of your existing images in MiB (rounded up)
-	ROOT_SIZE_MIB=$(( $(du -b "$ROOTFS_ENC_IMG" | cut -f1) / 1024 / 1024 + 1 ))
-	HASH_SIZE_MIB=$(( $(du -b "$DMVERITY_ROOTFS_HASH_IMG" | cut -f1) / 1024 / 1024 + 1 ))
+	BOOT_SIZE_MIB=$(( $(du -b "$BOOTFS_IMG" | cut -f1) / 1024 / 1024 + 1 ))
+	if [ "$LUKS" = "true" ] ; then
+		ROOTFS_IMG_TO_FLASH=$ROOTFS_ENC_IMG
+		ROOTFS_IMG_TO_FLASH_B=$ROOTFS_ENC_IMG_B
+		ROOT_SIZE_MIB=$(( $(du -b "$ROOTFS_ENC_IMG" | cut -f1) / 1024 / 1024 + 1 ))
+	else
+		ROOTFS_IMG_TO_FLASH=$ROOTFS_IMG
+		ROOTFS_IMG_TO_FLASH_B=$ROOTFS_IMG
+		ROOT_SIZE_MIB=$(( $(du -b "$ROOTFS_IMG" | cut -f1) / 1024 / 1024 + 1 ))
+	fi
+	if [ "$DMVERITY" = "true" ] ; then
+		HASH_SIZE_MIB=$(( $(du -b "$DMVERITY_ROOTFS_HASH_IMG" | cut -f1) / 1024 / 1024 + 1 ))
+	else
+		HASH_SIZE_MIB=0
+	fi
+}
 
+#
+# Create A only scheme
+# Note: has not been tested in a long while, and does not contain a data partition
+#
+create_gpt_image_simple_a_only_partitions_boot_materials_in_esp() {
+	print_welding_images_information # Will also print $DATA_FS_FOLDER although it is not used from this function # Will also print $DATA_FS_FOLDER although it is not used from this function
+
+	calculate_image_sizes
+	# Add a small buffer (10MiB) for partition alignment/headers
+	TOTAL_SIZE_MIB=$((ESP_SIZE_MIB + ROOT_SIZE_MIB + HASH_SIZE_MIB + 10))
+
+
+	echo "[+] Creating an empty image file..."
+	echo "Calculated Image Size: ${TOTAL_SIZE_MIB}MiB. ESP: $ESP_SIZE_MIB, rootfs: $ROOT_SIZE_MIB, dmverity_hash: $HASH_SIZE_MIB)"
+	# Sizes in MiB (M in dd means MiB, not MB)
+	dd if=/dev/zero of="$OUTPUT_IMG" bs=1M count=0 seek=$TOTAL_SIZE_MIB 
+}
+
+#
+# CreateA/B scheme. This can be quite easily merged with the A/only function, but I'm not doing it now, as the other one has not been used in a while anyhow
+#
+create_gpt_image() {
+	print_welding_images_information
+	calculate_image_sizes
 	DATA_SIZE_MIB=$(( $(du -b "$DATAFS_IMG" | cut -f1) / 1024 / 1024 + 1 ))
 	# Add a small buffer (10MiB) for partition alignment/headers
 	TOTAL_SIZE_MIB=$((ESP_SIZE_MIB + (BOOT_SIZE_MIB + ROOT_SIZE_MIB + HASH_SIZE_MIB) * COUNT_TIMES + $DATA_SIZE_MIB + 10))
-
-
 	echo "[+] Creating an empty image file..."
 	echo "Calculated Image Size: ${TOTAL_SIZE_MIB}MiB. ESP: $ESP_SIZE_MIB, bootfs, $BOOT_SIZE_MIB, rootfs: $ROOT_SIZE_MIB, dmverity_hash: $HASH_SIZE_MIB, datafs: $DATA_SIZE_MIB). Redunant partitions: $COUNT_TIMES"
 	dd if=/dev/zero of="$OUTPUT_IMG" bs=1M count=0 seek=$TOTAL_SIZE_MIB 
 }
 
-#TODO MODIFY VARIABLE NAMES etc. and put them in a common place
-: ${DO_RAUC_BUNDLE=true}
-# "pre populate, or add some images, so that we can test without copying while working on RAUC...
-: ${COPY_RAUC_BUNDLE_TO_DATA_PARTITION=true}
 
 wip_temp_rauc_logic() {
+	#TODO MODIFY VARIABLE NAMES etc. and put them in a common place
+	if [ ! "$RAUC" = "true" ] ; then
+		return
+	fi
+
+	: ${DO_RAUC_BUNDLE=true}
+	# "pre populate, or add some images, so that we can test without copying while working on RAUC...
+	: ${COPY_RAUC_BUNDLE_TO_DATA_PARTITION=true}
+
 	if [ "$DO_RAUC_BUNDLE" = "true" ] ; then
 		$LOCAL_DIR/../external-projects/build-rauc-bundle.sh
 		if [ "$COPY_RAUC_BUNDLE_TO_DATA_PARTITION" = "true" ] ; then

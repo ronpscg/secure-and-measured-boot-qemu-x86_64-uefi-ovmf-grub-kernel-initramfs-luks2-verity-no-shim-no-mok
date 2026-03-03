@@ -31,16 +31,17 @@ if [ -z "$ROOTFS_SIZE_MIB" -o -n "$ROOTFS_SIZE_MIB" -a ! "$ROOTFS_SIZE_MIB" = "0
 	echo "Using $ROOTFS_IMG. Size: $ROOTFS_SIZE_MIB MiB"
 fi
 
-export ROOTFS_IMG
-export LUKS_MAPPER_NAME ROOTFS_ENC_IMG
-export ROOTFS_DECRYPTED_IMG
+if [ "$LUKS" = "true" -o "$DMVERITY" = "true" ] ; then
+	export ROOTFS_IMG
+	export LUKS_MAPPER_NAME ROOTFS_ENC_IMG
+	export ROOTFS_DECRYPTED_IMG
 
-export DMVERITY_ROOTFS_HASH_IMG DMVERITY_HEADER_TEXT_FILE
-export SOURCE_SIZE_MIB=$ROOTFS_SIZE_MIB
+	export DMVERITY_ROOTFS_HASH_IMG DMVERITY_HEADER_TEXT_FILE
+	export SOURCE_SIZE_MIB=$ROOTFS_SIZE_MIB
 
-export LUKS_AND_DMVERITY_EXPORTED_ENV_FILE
-./6-luks-and-dmverity-image.sh
-
-
-echo "Please update the GRUB config with the relevant UUIDs and values, and rerun make-images-boot-materials.sh"
-
+	export LUKS_AND_DMVERITY_EXPORTED_ENV_FILE
+	./6-luks-and-dmverity-image.sh
+	echo "Please update the GRUB config with the relevant UUIDs and values, and rerun make-images-boot-materials.sh"
+else
+	echo "LUKS and DMVERITY are not used in this build"
+fi	
