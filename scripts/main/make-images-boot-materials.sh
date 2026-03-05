@@ -71,9 +71,30 @@ copy_grub() {
 
 
 update_grub_config() {
-        if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB_CONFIG" = "true" ] ; then
-                return
-        fi
+	if [ "$MAKEIMAGE_STEP_DONT_UPDATE_GRUB_CONFIG" = "true" ] ; then
+		return
+	fi
+
+	if [ "$SECURE_BOOT" = "false" ] ; then
+		echo "[+] Removing default signature checks from GRUB, while retaining the public key infrastructure support"
+		local grub_disable_signature_check_config=/tmp/disable-grub-signature-check.cfg
+		local grub_disable_signature_check_early_config=/tmp/disable-grub-signature-check-early.cfg
+		# Read the text below, it explains it. Long story short - if you have the GRUB signature infrastructure,
+		# GRUB will try to verify it by default. For convenience, we et it to don't verify if secure boot is off.
+		# If you want to change this default, just comment out the check_signatures=no in this if code block or set it to enforce
+		echo -e "# explicitly disabling signature check - it does not mean that signature checks must be associated with secure boot" >> $grub_disable_signature_check_config
+		echo -e "# but rather that it is easier for you to modify to config file and still have signatures by default, over resigning," >> $grub_disable_signature_check_config
+		echo -e "# and the default of GRUB is to enforce signatures once you bake in a public key, which we choose to do anyway" >> $grub_disable_signature_check_config
+		echo -e "set check_signatures=no\n" >> $grub_disable_signature_check_config
+
+		GRUB_CONFIGS="$grub_disable_signature_check_config $GRUB_CONFIGS"
+
+		if [ ! -f "$GRUB_EARLY_CONFIG" ] ; then
+			echo -e "set check_signatures=no\n" > $grub_disable_signature_check_early_config
+			GRUB_EARLY_CONFIG=$grub_disable_signature_check_early_config
+		fi
+	fi
+
 
 	if [ -f $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE ] ; then
 		echo "[+] Sourcing $LUKS_AND_DMVERITY_EXPORTED_ENV_FILE and updating $GRUB_CONFIG accordingly"

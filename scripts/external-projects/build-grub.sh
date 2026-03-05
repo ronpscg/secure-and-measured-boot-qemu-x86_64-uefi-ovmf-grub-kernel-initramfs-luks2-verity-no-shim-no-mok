@@ -27,7 +27,7 @@ build_grub_core() (
 # is basically what the Yocto project does but I won't do it now, it's WIP
 #
 build_nonstandalone_image() (
-	echo -e "\x1b[43mWarning this has not been run/tested/etc., it's a preparation, for something I don't support\x1b[0m"
+	echo -e "\x1b[32mBuilding a non standalone image (early config=$GRUB_EARLY_CONFIG)\x1b[0m"
 
 	cd $GRUB_BUILDER_DIR
 	# grub-mkimage requires specifying modules explicitly
@@ -39,11 +39,16 @@ build_nonstandalone_image() (
 		loadenv \
 		read \
 	"}
+
+	if [ -f "$GRUB_EARLY_CONFIG" ] ; then
+		GRUB_EARLY_CONFIG_BUILD_LINE="-c $GRUB_EARLY_CONFIG"
+	fi
 	: ${GRUB_TARGET_CONFIG_FILE_PREFIX_DIR="/EFI/Boot"}
 	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \
 		--disable-shim-lock \
 		--pubkey=$GRUB_PGP_PUBLIC_KEY \
 		--prefix=$GRUB_TARGET_CONFIG_FILE_PREFIX_DIR \
+		$GRUB_EARLY_CONFIG_BUILD_LINE \
 		$GRUB_MODULES
 )
 

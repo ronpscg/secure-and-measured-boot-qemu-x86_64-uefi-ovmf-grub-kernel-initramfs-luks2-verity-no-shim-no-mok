@@ -122,6 +122,8 @@ export GRUB_CONFIG #TEMPORARY TODO FIND OUT WHY IN THE YOCTO HACK STUFF IT DOESN
 "}
 
  : ${GRUB_CONFIGS=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
+
+ : ${GRUB_EARLY_CONFIG=""}	# Enable an early configuration file - useful for grub-mkimage to do things before loading the configuration file from a disk
  : ${GRUB_DEFAULT_ENTRY=0}
  : ${GRUB_DEFAULT_TIMEOUT=20}
 # The PGP lines are required strictly for GRUB without SHIM 
