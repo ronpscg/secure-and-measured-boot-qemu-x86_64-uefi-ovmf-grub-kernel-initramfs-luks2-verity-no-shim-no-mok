@@ -113,17 +113,32 @@ GRUB_BUILDER_DIR=${REQUIRED_PROJECTS_DIR}/grub
 : ${GRUB_CONFIG=$REQUIRED_PROJECTS_ARTIFACTS_DIR/grub.cfg}
 export GRUB_CONFIG #TEMPORARY TODO FIND OUT WHY IN THE YOCTO HACK STUFF IT DOESNT APPEAR
 # This is a list of one or more template configuration files to make a configuration from. The default value is just an example, modify them as you please in your local.config file
-: ${GRUB_CONFIGS="\
-	$BUILD_TOP/grub-configs/grub-basic-defs.cfg \
-	$BUILD_TOP/grub-configs/grub-common-luks-dmverity-boot-functions.cfg \
-	$BUILD_TOP/grub-configs/grub-rauc-luks-dmverity-entries.cfg \
-	$BUILD_TOP/grub-configs/grub-luks-dmverity-entries.cfg \
-	$BUILD_TOP/grub-configs/grub-fwsetup-between-separators.cfg \
-	$BUILD_TOP/grub-configs/grub-rescue-mode-entries.cfg
 
-"}
-
- : ${GRUB_CONFIGS=$BUILD_TOP/grub-configs/config-grub-wip.cfg}
+if [ "$LUKS" = "false" -a "$DMVERITY" = "false" ] ; then
+	: ${GRUB_CONFIGS="\
+		$BUILD_TOP/grub-configs/grub-basic-defs.cfg \
+		$BUILD_TOP/grub-configs/no_luks_no_dmverity/grub-common-boot-functions.cfg \
+		$BUILD_TOP/grub-configs/grub-rauc-common.cfg \
+		$BUILD_TOP/grub-configs/no_luks_no_dmverity/grub-rauc-entries.cfg \
+		$BUILD_TOP/grub-configs/grub-fwsetup-between-separators.cfg \
+		$BUILD_TOP/grub-configs/grub-rescue-mode-entries.cfg \
+	"}
+elif [ "$LUKS" = "true" -a "$DMVERITY" = "true" ] ; then
+	: ${GRUB_CONFIGS="\
+		$BUILD_TOP/grub-configs/grub-basic-defs.cfg \
+		$BUILD_TOP/grub-configs/luks_dmverity/grub-common-boot-functions.cfg \
+		$BUILD_TOP/grub-configs/grub-rauc-common.cfg \
+		$BUILD_TOP/grub-configs/luks_dmverity/grub-rauc-entries.cfg \
+		$BUILD_TOP/grub-configs/luks_dmverity/grub-entries.cfg \
+		$BUILD_TOP/grub-configs/grub-fwsetup-between-separators.cfg \
+		$BUILD_TOP/grub-configs/grub-rescue-mode-entries.cfg \
+	"}
+else
+	if [ -z "$GRUB_CONFIGS" ] ; then 
+		echo "Please specify GRUB_CONFIGS"
+		exit 1
+	fi
+fi
 
  : ${GRUB_EARLY_CONFIG=""}	# Enable an early configuration file - useful for grub-mkimage to do things before loading the configuration file from a disk
  : ${GRUB_DEFAULT_ENTRY=0}
