@@ -387,7 +387,7 @@ wip_temp_rauc_logic() {
 	: ${COPY_RAUC_BUNDLE_TO_DATA_PARTITION=true}
 
 	if [ "$DO_RAUC_BUNDLE" = "true" ] ; then
-		$LOCAL_DIR/../external-projects/build-rauc-bundle.sh
+		$LOCAL_DIR/../external-projects/rauc/build-rauc-bundle.sh
 		if [ "$COPY_RAUC_BUNDLE_TO_DATA_PARTITION" = "true" ] ; then
 			# in this testing "workaround" (it is not, it is intended, to save time), if it is the very first time the system is built - DATA_FS_FOLDER will not exist, as it is only created in make_data_image_partition
 			if [ ! -d "$DATA_FS_FOLDER" ] ; then
@@ -399,8 +399,39 @@ wip_temp_rauc_logic() {
 	fi
 }
 
-main() {
+wip_temp_swupdate_logic() {
+	#TODO MODIFY VARIABLE NAMES etc. and put them in a common place
+	if [ ! "$SWUPDATE" = "true" ] ; then
+		return
+	fi
+
+	: ${DO_SWUPDATE_BUNDLE=true}
+	# "pre populate, or add some images, so that we can test without copying while working on SWUPDATE...
+	: ${COPY_SWUPDATE_BUNDLE_TO_DATA_PARTITION=true}
+
+	if [ "$DO_SWUPDATE_BUNDLE" = "true" ] ; then
+		$LOCAL_DIR/../external-projects/swupdate/build-swupdate-bundle.sh
+		if [ "$COPY_SWUPDATE_BUNDLE_TO_DATA_PARTITION" = "true" ] ; then
+			# in this testing "workaround" (it is not, it is intended, to save time), if it is the very first time the system is built - DATA_FS_FOLDER will not exist, as it is only created in make_data_image_partition
+			if [ ! -d "$DATA_FS_FOLDER" ] ; then
+				mkdir -p "$DATA_FS_FOLDER"
+			fi
+			echo -e "\e[33mDon't forget to clean the .swu files from $DATA_FS_FOLDER!\e[0m"
+			cp $(readlink -f $ARTIFACTS_DIR/bundle.swu) $DATA_FS_FOLDER
+		fi
+	fi
+}
+
+wip_non_pscgbuildos_ota_frameworks_logic() {
+	if [ "$RAUC" = "true" -a "$SWUPDATE" = "true" ] ; then
+		echo -e "\e[33mBoth RAUC and SWUPDATE are true. You probablty want to select only one of those\e[0m"
+	fi
 	wip_temp_rauc_logic # done before data to have a (Development) chance to pack images inside data. It's unnecessary basically, it's definitely WIP until first proof of RAUC work
+	wip_temp_swupdate_logic # done before data to have a (Development) chance to pack images inside data. It's unnecessary basically, it's definitely WIP until first proof of RAUC work
+}
+
+main() {
+	wip_non_pscgbuildos_ota_frameworks_logic
 	make_data_image_partition
 	#create_gpt_image_simple_a_only_partitions_boot_materials_in_esp
 	create_gpt_image

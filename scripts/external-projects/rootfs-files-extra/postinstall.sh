@@ -8,4 +8,6 @@ echo "chroot: executing customization scripts"
 systemctl enable tpm2-provision-luks.service
 systemctl enable mount-host-data.service
 
+which swupdate && systemctl disable swupdate swupdate.socket swupdate-progress # The swupdate demonstration has a system service that we don't use and it's easier to disable it over modifying the service file for it to find the keyring and configuration file
+
 echo "chroot: done work"
