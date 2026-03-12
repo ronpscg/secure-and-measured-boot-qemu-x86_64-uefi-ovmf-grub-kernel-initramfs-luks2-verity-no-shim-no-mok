@@ -42,6 +42,8 @@ build_nonstandalone_image() (
 
 	if [ -f "$GRUB_EARLY_CONFIG" ] ; then
 		GRUB_EARLY_CONFIG_BUILD_LINE="-c $GRUB_EARLY_CONFIG"
+	else
+		: ${GRUB_EARLY_CONFIG_BUILD_LINE=}
 	fi
 	: ${GRUB_TARGET_CONFIG_FILE_PREFIX_DIR="/EFI/Boot"}
 	./grub-mkimage -O x86_64-efi -o grubx64.efi --directory=./grub-core \

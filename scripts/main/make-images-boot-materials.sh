@@ -93,6 +93,8 @@ update_grub_config() {
 			echo -e "set check_signatures=no\n" > $grub_disable_signature_check_early_config
 			GRUB_EARLY_CONFIG=$grub_disable_signature_check_early_config
 		fi
+	else
+		: ${GRUB_EARLY_CONFIG=""}
 	fi
 
 
