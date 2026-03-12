@@ -15,13 +15,21 @@ debootstrap() {
 
 
 add_more_packages() {
+	: ${INSTALL_RAUC_PACKAGES=true}
+	: ${INSTALL_SWUPDATE_PACKAGES=true}
 	echo "[+] Adding more packages"
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y fdisk parted e2fsprogs iproute2 iputils-ping vim tpm2-tools fwupd efitools"
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y cryptsetup"  # Useful for detection of currently enrolled keys
 
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y ssh isc-dhcp-client"
-	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y squashfs-tools"
-	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y rauc rauc-service grub-common"
+	if [ "$INSTALL_RAUC_PACKAGES" = "true" ] ; then
+		sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y squashfs-tools"
+		sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y rauc rauc-service grub-common"
+	fi
+	if [ "$INSTALL_SWUPDATE_PACKAGES" = "true" ] ; then
+		sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y swupdate" # Could add also swupdate-www but won't do in this demonstration
+		sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get install -y cpio" # To debug swupdate bundles
+	fi
 
 	sudo chroot $ROOTFS_DEBOOTSTRAP_DIR bash -c "apt-get clean"
 	# Could also remove $ROOTFS_DEBOOTSTRAP_DIR/var/lib/apt/lists/* won't do it here (It's ~55MB for what is installed in the previous line)
@@ -47,6 +55,13 @@ add_more_customizations() {
 	if [ "$RAUC" = "true" ] ; then
 		if ! sudo cp -a $RAUC_CA_CERT $ROOTFS_DEBOOTSTRAP_DIR/etc/rauc/keyring.pem ; then
 			echo "Failed to populate your RAUC keyring with $RAUC_CA_CERT. Did you prooperly create the key materials?"
+			exit 1
+		fi
+	fi
+	if [ "$SWUPDATE" = "true" ] ; then
+		# We deliberately use the same key materials
+		if ! sudo cp -a $RAUC_CA_CERT $ROOTFS_DEBOOTSTRAP_DIR/etc/swupdate/keyring.pem ; then
+			echo "Failed to populate your SWUPDATE keyring with $RAUC_CA_CERT. Did you prooperly create the key materials?"
 			exit 1
 		fi
 	fi
