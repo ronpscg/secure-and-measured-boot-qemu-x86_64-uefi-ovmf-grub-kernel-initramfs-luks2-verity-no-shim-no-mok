@@ -91,6 +91,11 @@ RUN sudo apt-get install -y rauc squashfs-tools ssh
 # We could add it to the entry script if it exists, for example, but I am not doing it now
 #
 
+# Add support for a compressed binary delta files for demonstrating different methods of reducing update size when you cannot use block adaptive updates
+RUN sudo apt-get install xdelta3
+# Install additional useful tools (curl is necessary for setting up repo)
+RUN sudo apt-get install -y curl iputils-ping tree
+
 #----------------------------------------------------------
 # Set the entry point (could be done in the first stage)
 #----------------------------------------------------------
